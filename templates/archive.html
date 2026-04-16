@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Historical Archive — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.archive-row { cursor: pointer; }
+.archive-row:hover td { background: var(--surface-hover) !important; }
+.expand-area { display: none; background: var(--bg); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+.expand-area.open { display: table-row; }
+.expand-inner { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+.mini-bar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.mini-bar-name { font-size: 0.78rem; width: 130px; flex-shrink: 0; }
+.mini-bar-track { flex: 1; height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.mini-bar-fill { height: 100%; background: linear-gradient(90deg,var(--primary),var(--accent)); border-radius: 999px; }
+.mini-bar-pct { font-size: 0.75rem; color: var(--text-muted); width: 35px; text-align: right; }
+</style>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="archive" style="width:12px;height:12px;"></i> Past Elections</div>
+    <h1 class="fade-in">Historical <span style="color:var(--accent);">Archive</span></h1>
+    <p class="fade-in fade-in-delay-1">Explore past election results and verified voting records.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:4rem;">
+  <!-- Search + Filter -->
+  <div style="display:flex;gap:1rem;align-items:center;margin-bottom:2rem;flex-wrap:wrap;" class="fade-in">
+    <div class="input-wrap" style="max-width:380px;flex:1;">
+      <i data-lucide="search" class="input-icon" style="width:16px;height:16px;"></i>
+      <input type="text" id="archive-search" placeholder="Search past elections..." oninput="filterArchive()" style="padding-left:2.5rem;">
+    </div>
+    <button class="btn btn-outline btn-sm">
+      <i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> Filter
+    </button>
+  </div>
+
+  <!-- Archive Table -->
+  <div class="card" style="padding:0;">
+    <div class="table-wrap">
+      <table id="archive-table">
+        <thead>
+          <tr>
+            <th>Election Name</th>
+            <th>Category</th>
+            <th>Date Held</th>
+            <th>Total Votes</th>
+            <th>Winner</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="archive-tbody">
+          {% for item in archive %}
+          <tr class="archive-row" onclick="toggleExpand('expand-{{ loop.index0 }}')" data-name="{{ item.name }}">
+            <td>
+              <div style="font-weight:600;font-size:0.9rem;">{{ item.name }}</div>
+            </td>
+            <td><span class="badge badge-muted" style="font-size:0.7rem;">{{ item.category }}</span></td>
+            <td style="font-size:0.85rem;color:var(--text-muted);">{{ item.date }}</td>
+            <td><strong>{{ item.total_votes }}</strong></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <img src="https://ui-avatars.com/api/?name={{ item.winner|replace(' ','+') }}&background=649748&color=fff&size=30" style="width:26px;height:26px;border-radius:50%;" alt="">
+                <span style="font-size:0.875rem;">{{ item.winner }}</span>
+              </div>
+            </td>
+            <td><span class="badge badge-green" style="font-size:0.65rem;">✓ Certified</span></td>
+            <td>
+              <div style="display:flex;gap:0.4rem;" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-glass" onclick="toggleExpand('expand-{{ loop.index0 }}')">Details</button>
+                <button class="btn btn-sm btn-outline" onclick="showToast('PDF download starting...','success')">
+                  <i data-lucide="download" style="width:12px;height:12px;"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr id="expand-{{ loop.index0 }}" style="display:none;">
+            <td colspan="7" style="padding:1.25rem 1.5rem;background:rgba(0,0,0,0.2);">
+              <div>
+                <h4 style="font-size:0.85rem;font-weight:700;margin-bottom:0.85rem;color:var(--text-muted);">CANDIDATE RESULTS</h4>
+                {% for r in item.results %}
+                <div class="mini-bar">
+                  <div class="mini-bar-name">{{ r.name }}</div>
+                  <div class="mini-bar-track"><div class="mini-bar-fill" style="width:{{ r.pct }}%;"></div></div>
+                  <div class="mini-bar-pct">{{ r.pct }}%</div>
+                </div>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleExpand(id) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function filterArchive() {
+  const q = document.getElementById('archive-search').value.toLowerCase();
+  const rows = document.querySelectorAll('#archive-tbody .archive-row');
+  rows.forEach(row => {
+    const match = row.dataset.name.toLowerCase().includes(q);
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

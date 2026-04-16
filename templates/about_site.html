@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}About This Site — VotingBox Tech Stack{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="code-2" style="width:12px;height:12px;"></i> Behind the Scenes</div>
+    <h1 class="fade-in">About <span style="color:var(--accent);">This Site</span></h1>
+    <p class="fade-in fade-in-delay-1">The technical stack powering VotingBox — built by Group 2 as a Computer Programming project.</p>
+  </div>
+</div>
+<div class="container section">
+  <div class="grid-2" style="gap:3rem;margin-bottom:4rem;">
+    <div class="fade-in">
+      <div class="section-tag" style="margin-bottom:1rem;"><i data-lucide="server" style="width:12px;height:12px;"></i> Backend</div>
+      <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:1.5rem;">Python Flask</h2>
+      {% for tech, desc, color in [
+        ('Python 3.x','Core language. Clean, readable, and powerful for backend logic.','#3776AB'),
+        ('Flask','Lightweight WSGI web framework for routing, sessions, and templates.','#649748'),
+        ('Jinja2','Server-side HTML templating with dynamic data injection.','#B41717'),
+        ('Flask-Session','Server-side session management for authentication state.','#649748'),
+        ('Google Gemini AI','AI-powered chat assistant for election Q&A.','#4285F4'),
+        ('python-dotenv','Environment variable management for API keys.','#ECD53F'),
+      ] %}
+      <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+        <div style="width:10px;height:10px;border-radius:50%;background:{{ color }};flex-shrink:0;"></div>
+        <div>
+          <div style="font-weight:700;font-size:0.9rem;">{{ tech }}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="fade-in fade-in-delay-1">
+      <div class="section-tag" style="margin-bottom:1rem;"><i data-lucide="layout" style="width:12px;height:12px;"></i> Frontend</div>
+      <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:1.5rem;">HTML / CSS / JS</h2>
+      {% for tech, desc, color in [
+        ('HTML5','Semantic markup for all 20 pages of VotingBox.','#E34F26'),
+        ('CSS3 (Custom)','Fully custom dark theme with CSS variables, animations, and responsive grid.','#1572B6'),
+        ('Vanilla JavaScript','All interactivity: countdowns, charts, webcam, voice, live updates.','#F7DF1E'),
+        ('Chart.js','Beautiful bar, line, and pie charts for election results.','#FF6384'),
+        ('Lucide Icons','Clean SVG icon library for consistent iconography.','#649748'),
+        ('marked.js','Markdown rendering for AI chat responses.','#8B949E'),
+        ('canvas-confetti','Confetti animations for vote success and easter eggs.','#A8D672'),
+        ('Google Fonts (Inter)','Modern, legible typeface for all text content.','#4285F4'),
+      ] %}
+      <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+        <div style="width:10px;height:10px;border-radius:50%;background:{{ color }};flex-shrink:0;"></div>
+        <div>
+          <div style="font-weight:700;font-size:0.9rem;">{{ tech }}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card fade-in" style="text-align:center;padding:2.5rem;background:linear-gradient(135deg,rgba(100,151,72,0.08),rgba(168,214,114,0.04));border-color:rgba(100,151,72,0.2);">
+    <div style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem;">Original Project</div>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem;">Built by Group 2 — Antigravity Edition</h3>
+    <p style="color:var(--text-muted);font-size:0.875rem;line-height:1.7;max-width:550px;margin:0 auto 1.5rem;">
+      This project is a complete Flask rebuild of the original React + TypeScript + Firebase VotingBox platform.
+      Rebuilt from scratch with a focus on simplicity, performance, and a stunning dark UI.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--accent);">20+</div><div style="font-size:0.75rem;color:var(--text-muted);">Pages Built</div></div>
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--accent);">3K+</div><div style="font-size:0.75rem;color:var(--text-muted);">Lines of Code</div></div>
+      <div style="text-align:center;"><div style="font-size:1.5rem;font-weight:900;color:var(--accent);">Python</div><div style="font-size:0.75rem;color:var(--text-muted);">+ Flask</div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

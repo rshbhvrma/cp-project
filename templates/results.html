@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+{% block title %}Live Results — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.live-banner {
+  background: linear-gradient(90deg, rgba(100,151,72,0.12), rgba(168,214,114,0.08));
+  border-bottom: 1px solid rgba(100,151,72,0.2);
+  padding: 0.75rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.results-layout { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; }
+.results-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1.5rem; }
+.leader-card {
+  background: linear-gradient(135deg, rgba(100,151,72,0.1), rgba(168,214,114,0.05));
+  border: 1px solid rgba(100,151,72,0.25);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.candidate-bar-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.candidate-bar-info { flex: 1; }
+.candidate-bar-name { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
+.candidate-bar-pct { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
+.chart-toggle-btns { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+.chart-toggle-btn {
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chart-toggle-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chart-area { height: 280px; position: relative; }
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.share-btn:hover { color: var(--text); border-color: var(--border-strong); }
+/* Wave View */
+.wave-view { padding: 1.5rem 0; }
+.wave-svg { width: 100%; overflow: visible; }
+/* Live Feed */
+.live-feed-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; height: fit-content; position: sticky; top: 80px; }
+.ai-pred-card {
+  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(168,214,114,0.05));
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 900px) { .results-layout { grid-template-columns: 1fr; } .live-feed-panel { position: static; } }
+</style>
+
+<!-- Live Banner -->
+<div class="live-banner">
+  <span class="pulse-dot" style="background:var(--primary);width:8px;height:8px;"></span>
+  <strong style="color:var(--accent);">LIVE</strong>
+  Results are updated in real-time — refreshing every 3 seconds
+</div>
+
+<div class="container section-sm">
+  <!-- Page Header + Tabs -->
+  <div style="margin-bottom:2rem;" class="fade-in">
+    <div class="section-tag"><i data-lucide="bar-chart-3" style="width:12px;height:12px;"></i> Live Data</div>
+    <h1 style="font-size:2.5rem;font-weight:900;margin:0.5rem 0 0.25rem;">Election <span style="color:var(--accent)">Results</span></h1>
+    <p style="color:var(--text-muted);">Real-time vote counts for all active elections.</p>
+  </div>
+
+  <!-- Result Tabs -->
+  <div class="tabs-container" style="margin-bottom:2rem;">
+    <div class="tabs" style="margin-bottom:1.5rem;">
+      <button class="tab-btn active" data-tab="actual">
+        <i data-lucide="bar-chart-2" style="width:14px;height:14px;"></i> Actual Results
+      </button>
+      <button class="tab-btn" data-tab="predictions">
+        <i data-lucide="brain" style="width:14px;height:14px;"></i> AI Predictions
+      </button>
+    </div>
+
+    <!-- Actual Results Tab -->
+    <div id="tab-actual" class="tab-content active">
+      <div class="results-layout">
+        <div>
+          {% for eid, rd in results_data.items() %}
+          <div class="results-card fade-in" id="result-card-{{ eid }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:1rem;">
+              <div>
+                <h2 style="font-size:1.1rem;font-weight:700;">{{ rd.title }}</h2>
+                <span class="badge badge-green" style="margin-top:0.3rem;"><span class="pulse-dot"></span> {{ rd.status }}</span>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <!-- Chart Toggle -->
+                <div class="chart-toggle-btns">
+                  <button class="chart-toggle-btn active" onclick="showView('bar','{{ eid }}',this)" id="bar-btn-{{ eid }}">Bar View</button>
+                  <button class="chart-toggle-btn" onclick="showView('wave','{{ eid }}',this)" id="wave-btn-{{ eid }}">Wave View</button>
+                </div>
+                <button class="share-btn" onclick="openModal('share-modal-{{ eid }}')">
+                  <i data-lucide="share-2" style="width:13px;height:13px;"></i> Share
+                </button>
+              </div>
+            </div>
+
+            <!-- Leader Card -->
+            <div class="leader-card" id="leader-{{ eid }}">
+              <img src="https://ui-avatars.com/api/?name={{ rd.candidates[0].name|replace(' ','+') }}&background={{ rd.candidates[0].avatar_bg }}&color=fff&size=80"
+                   style="width:56px;height:56px;border-radius:50%;flex-shrink:0;" alt="Leader">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+                  <span id="leader-name-{{ eid }}" style="font-weight:700;">{{ rd.candidates[0].name }}</span>
+                  <span class="badge badge-yellow" style="font-size:0.65rem;">👑 Leading</span>
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">{{ rd.candidates[0].party }}</div>
+                <div style="font-size:0.9rem;font-weight:700;color:var(--accent);margin-top:0.25rem;" id="leader-pct-{{ eid }}">
+                  {{ (rd.candidates[0].votes / rd.total * 100)|round(1) }}%
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:1.5rem;font-weight:900;color:var(--text);" id="leader-votes-{{ eid }}">{{ rd.candidates[0].votes|int }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">votes</div>
+              </div>
+            </div>
+
+            <!-- Bar View -->
+            <div id="bar-view-{{ eid }}">
+              <div class="chart-area">
+                <canvas id="chart-{{ eid }}"></canvas>
+              </div>
+              <div style="margin-top:1.5rem;" id="bars-{{ eid }}">
+                {% for c in rd.candidates %}
+                <div class="candidate-bar-row">
+                  <img src="https://ui-avatars.com/api/?name={{ c.name|replace(' ','+') }}&background={{ c.avatar_bg }}&color=fff&size=40"
+                       style="width:36px;height:36px;border-radius:50%;flex-shrink:0;" alt="{{ c.name }}">
+                  <div class="candidate-bar-info">
+                    <div class="candidate-bar-name">
+                      {{ c.name }}
+                      <span style="padding:0.15rem 0.5rem;background:rgba(255,255,255,0.05);border-radius:4px;font-size:0.7rem;font-weight:600;color:var(--text-muted);">{{ c.party }}</span>
+                    </div>
+                    <div class="candidate-bar-pct">
+                      <span id="bar-pct-{{ eid }}-{{ loop.index0 }}" style="color:var(--text-muted);font-size:0.8rem;">{{ (c.votes/rd.total*100)|round(1) }}%</span>
+                      <span style="font-weight:700;" id="bar-votes-{{ eid }}-{{ loop.index0 }}">{{ c.votes }}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" id="bar-fill-{{ eid }}-{{ loop.index0 }}"
+                           style="background:{{ c.color }};width:{{ (c.votes/rd.total*100)|round(1) }}%;"></div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Wave View (hidden by default) -->
+            <div id="wave-view-{{ eid }}" style="display:none;">
+              <div class="wave-view">
+                <svg class="wave-svg" height="120" id="wave-svg-{{ eid }}" viewBox="0 0 800 120">
+                  {% for c in rd.candidates %}
+                  {% set h = (c.votes/rd.total*80)|round|int %}
+                  {% set y = 110 - h %}
+                  <path id="wave-path-{{ eid }}-{{ loop.index0 }}"
+                        stroke="{{ c.color }}" stroke-width="3" fill="none"
+                        d="M 0 {{ y }} Q 200 {{ y - 30 }} 400 {{ y }} Q 600 {{ y + 30 }} 800 {{ y }}"
+                        style="animation: waveAnim{{ loop.index0 }} {{ 2 + loop.index0 * 0.5 }}s ease-in-out infinite alternate;">
+                  </path>
+                  <text x="10" y="{{ y - 8 }}" fill="{{ c.color }}" font-size="11" font-weight="600">{{ c.name }}</text>
+                  {% endfor %}
+                </svg>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Live Feed Sidebar -->
+        <div class="live-feed-panel fade-in">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <h3 style="font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;">
+              <i data-lucide="activity" style="width:16px;height:16px;color:var(--accent);"></i>
+              Live Updates
+            </h3>
+            <span class="pulse-dot" style="background:var(--primary);"></span>
+          </div>
+          <div id="live-feed" style="max-height:500px;overflow-y:auto;">
+            <div class="live-feed-item"><div class="feed-dot" style="background:#FF9933;"></div><div><div style="font-size:0.8rem;font-weight:600;">Narendra Modi takes the lead in Varanasi</div><div style="font-size:0.72rem;color:var(--text-muted);">2m ago</div></div></div>
+            <div class="live-feed-item"><div class="feed-dot" style="background:#138808;"></div><div><div style="font-size:0.8rem;font-weight:600;">High voter turnout reported in Kerala</div><div style="font-size:0.72rem;color:var(--text-muted);">5m ago</div></div></div>
+            <div class="live-feed-item"><div class="feed-dot" style="background:#00B2EF;"></div><div><div style="font-size:0.8rem;font-weight:600;">New counting center opened in Mumbai</div><div style="font-size:0.72rem;color:var(--text-muted);">8m ago</div></div></div>
+            <div class="live-feed-item"><div class="feed-dot" style="background:var(--primary);"></div><div><div style="font-size:0.8rem;font-weight:600;">65% turnout reached in National Election</div><div style="font-size:0.72rem;color:var(--text-muted);">12m ago</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Predictions Tab -->
+    <div id="tab-predictions" class="tab-content">
+      <div class="results-layout">
+        <div>
+          <div class="results-card">
+            <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem;">AI Trend Analysis</h2>
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.5rem;">Based on machine learning analysis of voting patterns and historical data.</p>
+            <div class="chart-area" style="height:300px;">
+              <canvas id="trend-chart"></canvas>
+            </div>
+          </div>
+          <div class="ai-pred-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <h3 style="font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;">
+                <i data-lucide="brain" style="width:16px;height:16px;color:#3B82F6;"></i> Predicted Winner
+              </h3>
+              <span class="badge" style="background:rgba(59,130,246,0.15);color:#93C5FD;border-color:rgba(59,130,246,0.3);">AI Analysis</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+              <img src="https://ui-avatars.com/api/?name=Narendra+Modi&background=FF9933&color=fff&size=60" style="width:52px;height:52px;border-radius:50%;" alt="Modi">
+              <div>
+                <div style="font-weight:700;">Narendra Modi</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">NDA</div>
+                <div style="font-size:0.85rem;color:var(--accent);font-weight:600;margin-top:0.2rem;">Confidence: 85%</div>
+              </div>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:85%;background:linear-gradient(90deg,#3B82F6,#8B5CF6);"></div>
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;">⚠️ AI predictions are based on trend analysis and are not guaranteed. Actual results may differ.</p>
+          </div>
+        </div>
+        <div class="live-feed-panel">
+          <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1rem;">AI Insights</h3>
+          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.7;">
+            <p style="margin-bottom:0.75rem;">📈 <strong style="color:var(--text);">Rising:</strong> Narendra Modi gaining 2.3% in last hour</p>
+            <p style="margin-bottom:0.75rem;">📉 <strong style="color:var(--text);">Declining:</strong> Rahul Gandhi lost 1.2% in northern states</p>
+            <p style="margin-bottom:0.75rem;">⚡ <strong style="color:var(--text);">Surge:</strong> High youth turnout favoring AAP</p>
+            <p>🔮 <strong style="color:var(--text);">Projection:</strong> NDA likely to cross 6000 votes by closing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share Modal -->
+{% for eid, rd in results_data.items() %}
+<div class="modal-overlay" id="share-modal-{{ eid }}" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Share Results</h2>
+      <button class="modal-close" onclick="closeModal('share-modal-{{ eid }}')">✕</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.25rem;">{{ rd.title }}</p>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-size:0.85rem;line-height:1.8;" id="share-text-{{ eid }}">
+      🗳️ VotingBox Live Results — {{ rd.title }}<br>
+      {% for c in rd.candidates %}
+      {{ c.name }} ({{ c.party }}): {{ c.votes }} votes ({{ (c.votes/rd.total*100)|round(1) }}%)<br>
+      {% endfor %}
+      Total: {{ rd.total }} votes | Status: {{ rd.status }}<br>
+      View live at: votingbox.app/results
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" onclick="copyToClipboard(document.getElementById('share-text-{{ eid }}').innerText)">
+        <i data-lucide="copy" style="width:14px;height:14px;"></i> Copy to Clipboard
+      </button>
+      <a href="https://twitter.com/intent/tweet?text={{ rd.title | urlencode }}%20Results%20on%20VotingBox" target="_blank" class="btn btn-sm btn-outline">
+        <i data-lucide="x" style="width:14px;height:14px;"></i> Share on X
+      </a>
+      <a href="https://wa.me/?text={{ rd.title | urlencode }}%20Results%20on%20VotingBox" target="_blank" class="btn btn-sm btn-outline" style="color:#25D366;border-color:rgba(37,211,102,0.3);">
+        Share on WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+// ─── Results Data ─────────────────────────────────────────────────
+const resultsData = {
+  {% for eid, rd in results_data.items() %}
+  '{{ eid }}': {
+    candidates: [
+      {% for c in rd.candidates %}
+      { name: '{{ c.name }}', party: '{{ c.party }}', votes: {{ c.votes }}, color: '{{ c.color }}', avatarBg: '{{ c.avatar_bg }}' }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ],
+    total: {{ rd.total }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
+
+// ─── Chart.js Bar Chart ──────────────────────────────────────────
+const charts = {};
+// Helper: convert hex to rgba
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+{% for eid, rd in results_data.items() %}
+(function() {
+  const ctx = document.getElementById('chart-{{ eid }}').getContext('2d');
+  const colors = [{% for c in rd.candidates %}'{{ c.color }}'{% if not loop.last %},{% endif %}{% endfor %}];
+  charts['{{ eid }}'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [{% for c in rd.candidates %}'{{ c.name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        data: [{% for c in rd.candidates %}{{ c.votes }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: colors.map(c => hexToRgba(c, 0.25)),
+        borderColor: colors,
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8B949E' } },
+        y: { grid: { display: false }, ticks: { color: '#fff', font: { weight: '600' } } }
+      }
+    }
+  });
+})();
+{% endfor %}
+
+// ─── AI Trend Line Chart ──────────────────────────────────────────
+(function() {
+  const ctx = document.getElementById('trend-chart');
+  if (!ctx) return;
+  const hours = ['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: hours,
+      datasets: [
+        { label: 'Narendra Modi', data: [2100,2800,3500,3900,4200,4700,5000,5300,5420], borderColor: '#FF9933', backgroundColor: 'rgba(255,153,51,0.08)', tension: 0.4, fill: true },
+        { label: 'Rahul Gandhi', data: [1800,2200,2600,2900,3100,3400,3600,3800,3890], borderColor: '#138808', backgroundColor: 'rgba(19,136,8,0.06)', tension: 0.4, fill: true },
+        { label: 'Arvind Kejriwal', data: [900,1100,1400,1600,1750,1900,2000,2100,2150], borderColor: '#00B2EF', backgroundColor: 'rgba(0,178,239,0.05)', tension: 0.4, fill: true },
+        { label: 'Mamata Banerjee', data: [800,1000,1200,1500,1650,1780,1870,1950,1990], borderColor: '#00CCFF', backgroundColor: 'rgba(0,204,255,0.04)', tension: 0.4, fill: true },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#fff', font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8B949E' } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8B949E' } }
+      }
+    }
+  });
+})();
+
+// ─── Live Updates (every 3s) ──────────────────────────────────────
+const feedMessages = [
+  ['New votes counted for Narendra Modi in Gujarat', '#FF9933'],
+  ['Turnout reaches 68% in Tamil Nadu', '#649748'],
+  ['Counting complete in 45 more constituencies', '#A8D672'],
+  ['Rahul Gandhi leads in Wayanad', '#138808'],
+  ['Electronic counting machines verified', '#8B949E'],
+  ['Voter turnout update: 10,000 new votes', '#649748'],
+  ['Arvind Kejriwal gains in Delhi', '#00B2EF'],
+  ['EVM results being uploaded to server', '#A8D672'],
+];
+
+setInterval(() => {
+  // Update vote counts
+  Object.keys(resultsData).forEach(eid => {
+    const rd = resultsData[eid];
+    let totalDelta = 0;
+    rd.candidates.forEach((c, i) => {
+      const delta = Math.floor(Math.random() * 80) + 10;
+      c.votes += delta;
+      totalDelta += delta;
+    });
+    rd.total += totalDelta;
+
+    // Update chart
+    if (charts[eid]) {
+      charts[eid].data.datasets[0].data = rd.candidates.map(c => c.votes);
+      charts[eid].update('none');
+    }
+
+    // Update bars
+    rd.candidates.forEach((c, i) => {
+      const pct = (c.votes / rd.total * 100).toFixed(1);
+      const fillEl = document.getElementById(`bar-fill-${eid}-${i}`);
+      const pctEl = document.getElementById(`bar-pct-${eid}-${i}`);
+      const votesEl = document.getElementById(`bar-votes-${eid}-${i}`);
+      if (fillEl) fillEl.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (votesEl) votesEl.textContent = c.votes.toLocaleString();
+    });
+
+    // Update leader card
+    const leader = rd.candidates.reduce((a, b) => a.votes > b.votes ? a : b);
+    const ln = document.getElementById(`leader-name-${eid}`);
+    const lp = document.getElementById(`leader-pct-${eid}`);
+    const lv = document.getElementById(`leader-votes-${eid}`);
+    if (ln) ln.textContent = leader.name;
+    if (lp) lp.textContent = (leader.votes/rd.total*100).toFixed(1) + '%';
+    if (lv) lv.textContent = leader.votes.toLocaleString();
+  });
+
+  // Add feed item
+  const feed = document.getElementById('live-feed');
+  if (feed) {
+    const [msg, color] = feedMessages[Math.floor(Math.random()*feedMessages.length)];
+    const item = document.createElement('div');
+    item.className = 'live-feed-item';
+    item.innerHTML = `<div class="feed-dot" style="background:${color};"></div><div><div style="font-size:0.8rem;font-weight:600;">${msg}</div><div style="font-size:0.72rem;color:var(--text-muted);">Just now</div></div>`;
+    feed.insertBefore(item, feed.firstChild);
+    while (feed.children.length > 15) feed.removeChild(feed.lastChild);
+  }
+}, 3000);
+
+function showView(type, eid, btn) {
+  document.querySelectorAll(`[id^="bar-btn-${eid}"], [id^="wave-btn-${eid}"]`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`bar-view-${eid}`).style.display = type === 'bar' ? 'block' : 'none';
+  document.getElementById(`wave-view-${eid}`).style.display = type === 'wave' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.dashboard-hero {
+  background: linear-gradient(135deg, #1a2f0f 0%, #162506 50%, #0D1117 100%);
+  border-bottom: 1px solid rgba(100,151,72,0.2);
+  padding: 2.5rem 0;
+}
+.voter-id-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  text-align: right;
+}
+.voter-id-card .id-val { font-family: 'Courier New', monospace; font-size: 0.85rem; color: var(--accent); letter-spacing: 0.08em; }
+.action-row { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+.action-row:last-child { border-bottom: none; }
+.history-entry { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+.history-entry:last-child { border-bottom: none; }
+/* Achievements */
+.badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
+.achievement-badge {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.achievement-badge.earned {
+  border-color: rgba(255,215,0,0.35);
+  background: rgba(255,215,0,0.04);
+  box-shadow: 0 0 16px rgba(255,215,0,0.1);
+}
+.achievement-badge.earned:hover { box-shadow: 0 0 24px rgba(255,215,0,0.2); transform: translateY(-3px); }
+.achievement-badge.locked { opacity: 0.5; filter: grayscale(0.8); }
+.achievement-badge.locked:hover .lock-overlay { opacity: 1; }
+.lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.badge-emoji { font-size: 1.75rem; margin-bottom: 0.4rem; }
+.badge-name { font-size: 0.75rem; font-weight: 700; }
+.badge-desc { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.2rem; }
+.earned-label { font-size: 0.6rem; color: #FFD700; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.3rem; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; border-radius: 8px; padding-left: 0.5rem; padding-right: 0.5rem; }
+.settings-row:hover { background: var(--surface-hover); }
+.settings-row:last-child { border-bottom: none; }
+@media (max-width: 768px) { .badge-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<!-- Dashboard Hero -->
+<div class="dashboard-hero">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.8rem;color:var(--accent);font-weight:600;margin-bottom:0.5rem;letter-spacing:0.08em;">VOTER DASHBOARD</div>
+        <h1 style="font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;">Welcome back, <span style="color:var(--accent);">{{ user.name.split()[0] }}!</span> 👋</h1>
+        <p style="color:var(--text-muted);margin-top:0.4rem;">Your voter dashboard is ready. Stay informed and keep voting.</p>
+      </div>
+      <div class="voter-id-card">
+        <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;">Voter ID</div>
+        <div class="id-val">{{ voter_id }}</div>
+        <div style="margin-top:0.4rem;">
+          <span class="badge badge-green"><span class="pulse-dot"></span> Verified</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2.5rem;padding-bottom:4rem;">
+  <div class="grid-12">
+    <!-- Left Column -->
+    <div>
+
+      <!-- Action Required -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <h2 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="bell" style="width:16px;height:16px;color:var(--accent);"></i>
+            Action Required
+          </h2>
+          <a href="/elections" style="font-size:0.8rem;color:var(--primary);">View All →</a>
+        </div>
+        {% set open_elections = elections | selectattr('status','equalto','OPEN') | list %}
+        {% if open_elections %}
+          {% for e in open_elections %}
+          <div class="action-row">
+            <div>
+              <div style="font-size:0.9rem;font-weight:600;">{{ e.title }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">Closes: {{ e.deadline }}</div>
+            </div>
+            {% if e.voted %}
+              <span class="badge badge-muted">✓ Voted</span>
+            {% else %}
+              <a href="/vote/{{ e.id }}" class="btn btn-primary btn-sm">Vote Now</a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;">No open elections right now. Check back soon!</p>
+        {% endif %}
+      </div>
+
+      <!-- Voting History -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <h2 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="history" style="width:16px;height:16px;color:var(--accent);"></i>
+            Voting History
+          </h2>
+        </div>
+        {% if vote_history %}
+          {% for vh in vote_history %}
+          <div class="history-entry">
+            <div style="width:38px;height:38px;background:rgba(100,151,72,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;">
+              <i data-lucide="check-circle" style="width:18px;height:18px;"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:0.875rem;font-weight:600;">Voted in Election #{{ vh.election_id }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ vh.date }} · Candidate: {{ vh.candidate }}</div>
+            </div>
+            <div class="code-block">{{ vh.receipt }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1.5rem 0;">
+            <i data-lucide="inbox" style="width:32px;height:32px;opacity:0.3;display:block;margin:0 auto 0.75rem;"></i>
+            You haven't voted yet. <a href="/elections" style="color:var(--primary);">Browse elections →</a>
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Achievements -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+          <h2 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="trophy" style="width:16px;height:16px;color:#FFD700;"></i>
+            My Achievements
+          </h2>
+          <button class="btn btn-sm btn-outline" onclick="shareBadges()">
+            <i data-lucide="share-2" style="width:14px;height:14px;"></i> Share My Badges
+          </button>
+        </div>
+        <!-- Progress -->
+        <div style="margin-bottom:1.5rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">
+            <span>Badges Earned</span>
+            <strong style="color:var(--text);">{{ 2 if votes_cast > 0 else 0 }}/8</strong>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:{{ 25 if votes_cast > 0 else 0 }}%;background:linear-gradient(90deg,#FFD700,#FFA500);"></div>
+          </div>
+        </div>
+        <div class="badge-grid">
+          {% set badges = [
+            ('🥇','First Vote','Cast your very first vote', votes_cast >= 1),
+            ('🛡','Verified Patriot','Identity fully verified', True),
+            ('🔥','Hat-Trick','Voted in 3 elections in a row', votes_cast >= 3),
+            ('⚡','Speed Voter','Voted within 1 hour of opening', False),
+            ('🦁','Civic Champion','Voted in 10+ elections', votes_cast >= 10),
+            ('🌟','Perfect Record','100% participation rate', False),
+            ('🎯','Sharpshooter','Voted for the winner 5 times', False),
+            ('👑','Democracy King','Voted in every election for 1 year', False),
+          ] %}
+          {% for emoji, name, desc, earned in badges %}
+          <div class="achievement-badge {{ 'earned' if earned else 'locked' }}">
+            <div class="badge-emoji">{{ emoji }}</div>
+            <div class="badge-name">{{ name }}</div>
+            <div class="badge-desc">{{ desc }}</div>
+            {% if earned %}<div class="earned-label">✓ EARNED</div>{% endif %}
+            {% if not earned %}
+            <div class="lock-overlay">
+              <i data-lucide="lock" style="width:20px;height:20px;color:#fff;opacity:0.8;"></i>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <!-- Stats Card -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;margin-bottom:1.25rem;">
+          <i data-lucide="pie-chart" style="width:16px;height:16px;color:var(--accent);"></i>
+          Voting Stats
+        </h3>
+        <div style="margin-bottom:1.25rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.4rem;">
+            <span>Participation Rate</span>
+            <span>{{ votes_cast }}/{{ elections|length }}</span>
+          </div>
+          <div class="progress-bar-bg">
+            {% set pct = ((votes_cast / elections|length) * 100)|round|int if elections|length > 0 else 0 %}
+            <div class="progress-bar-fill" style="width:{{ pct }}%;"></div>
+          </div>
+          <div style="text-align:right;font-size:0.75rem;color:var(--accent);margin-top:0.25rem;font-weight:700;">{{ pct }}%</div>
+        </div>
+        <div class="grid-2" style="gap:0.75rem;">
+          <div class="stat-card" style="padding:1rem;">
+            <div class="stat-value" style="font-size:1.5rem;">{{ votes_cast }}</div>
+            <div class="stat-label">Votes Cast</div>
+          </div>
+          <div class="stat-card" style="padding:1rem;">
+            <div class="stat-value" style="font-size:1.5rem;color:#EF4444;">{{ elections|length - votes_cast }}</div>
+            <div class="stat-label">Missed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Settings -->
+      <div class="card">
+        <h3 style="font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;margin-bottom:1rem;">
+          <i data-lucide="settings" style="width:16px;height:16px;color:var(--accent);"></i>
+          Account Settings
+        </h3>
+        <div>
+          <div class="settings-row">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+              <i data-lucide="user" style="width:15px;height:15px;color:var(--text-muted);"></i>
+              <span style="font-size:0.875rem;">Personal Information</span>
+            </div>
+            <i data-lucide="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </div>
+          <div class="settings-row">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+              <i data-lucide="shield" style="width:15px;height:15px;color:var(--text-muted);"></i>
+              <span style="font-size:0.875rem;">Security &amp; Password</span>
+            </div>
+            <i data-lucide="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </div>
+          <div class="settings-row">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+              <i data-lucide="bell" style="width:15px;height:15px;color:var(--text-muted);"></i>
+              <span style="font-size:0.875rem;">Notification Preferences</span>
+            </div>
+            <i data-lucide="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </div>
+        </div>
+        <a href="/auth/logout" class="btn btn-sm" style="width:100%;justify-content:center;margin-top:1.25rem;border:1px solid rgba(239,68,68,0.3);color:#EF4444;background:transparent;">
+          <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sign Out
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function shareBadges() {
+  const text = "My VotingBox achievements 🗳️\n🥇 First Vote\n🛡 Verified Patriot\n\nJoin me at votingbox.app";
+  navigator.clipboard.writeText(text).then(() => showToast('Badge card copied to clipboard!', 'success', 3000));
+}
+</script>
+{% endblock %}

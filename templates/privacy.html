@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy — VotingBox{% endblock %}
+{% block content %}
+<div class="page-hero"><div class="container">
+  <div class="section-tag fade-in"><i data-lucide="shield" style="width:12px;height:12px;"></i> Legal</div>
+  <h1 class="fade-in">Privacy <span style="color:var(--accent);">Policy</span></h1>
+  <p class="fade-in fade-in-delay-1">Last updated: January 1, 2026</p>
+</div></div>
+<div class="container section-sm"><div style="max-width:760px;margin:0 auto;" class="fade-in">
+  {% for section, content in [
+    ('1. Data Collection', 'We collect only the minimum data necessary to operate VotingBox. This includes your name, email address, and a cryptographic hash of your identity verification. We never store your raw biometric data or facial images after the verification session ends.'),
+    ('2. How We Use Your Data', 'Your data is used solely to authenticate your identity for voting purposes, prevent duplicate votes, and send you election-related notifications you opt into. We do not sell, rent, or share your personal data with any third parties for marketing purposes.'),
+    ('3. Vote Anonymity', 'Once your vote is cast, it is cryptographically separated from your identity using zero-knowledge proofs. This means we can verify your vote was valid without knowing who you voted for. Even our system administrators cannot link votes to individual voters.'),
+    ('4. Blockchain Storage', 'Vote records are stored on an immutable blockchain ledger. This ensures transparency and tamper-resistance while maintaining voter anonymity. Blockchain records are permanent and publicly verifiable.'),
+    ('5. Security Measures', 'We implement 256-bit AES encryption, TLS 1.3 for all data in transit, and regular third-party security audits. Our infrastructure is hosted in ISO 27001 certified data centers with 24/7 monitoring.'),
+    ('6. Your Rights', 'You have the right to access, correct, or delete your personal data at any time (excluding immutable vote records). You may request a copy of your data via our contact form. EU residents have additional rights under GDPR.'),
+    ('7. Cookies', 'We use only essential session cookies required for authentication. We do not use tracking cookies or third-party analytics that identify individual users.'),
+    ('8. Contact Us', 'For privacy-related inquiries, email us at privacy@votingbox.com or use the contact form on our website. We respond to all requests within 30 days.'),
+  ] %}
+  <div style="margin-bottom:2rem;">
+    <h2 style="font-size:1.05rem;font-weight:800;color:var(--accent);margin-bottom:0.65rem;">{{ section }}</h2>
+    <p style="color:var(--text-muted);line-height:1.8;font-size:0.9rem;">{{ content }}</p>
+  </div>
+  {% endfor %}
+</div></div>
+{% endblock %}

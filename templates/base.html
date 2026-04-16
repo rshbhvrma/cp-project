@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}VotingBox — Secure Online Voting Platform{% endblock %}</title>
+  <meta name="description" content="{% block description %}VotingBox is a secure, fast, and transparent online voting platform for the next generation of democracy.{% endblock %}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons (pinned to stable version with all modern icons) -->
+  <script src="https://unpkg.com/lucide@0.446.0/dist/umd/lucide.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- canvas-confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Top Banner -->
+<div class="top-banner">Made by Group 2 &nbsp;·&nbsp; VotingBox &nbsp;·&nbsp; Secure. Transparent. Democratic.</div>
+
+<!-- Navbar -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="/" class="navbar-logo" id="navbar-logo" title="VotingBox Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+    VotingBox
+  </a>
+
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/elections" class="nav-link">Elections</a>
+    <a href="/results" class="nav-link">Results</a>
+    <a href="/debate" class="nav-link">Debate</a>
+    <a href="/ask-ai" class="nav-link">History AI</a>
+
+    <div class="dropdown">
+      <button class="dropdown-toggle" aria-haspopup="true">
+        Product <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+      </button>
+      <div class="dropdown-menu">
+        <a href="/how-it-works"><i data-lucide="help-circle" style="width:14px;height:14px;"></i> How It Works</a>
+        <a href="/leaderboard"><i data-lucide="trophy" style="width:14px;height:14px;"></i> Leaderboard</a>
+        <a href="/forum"><i data-lucide="message-square" style="width:14px;height:14px;"></i> Forum</a>
+        <a href="/blockchain"><i data-lucide="blocks" style="width:14px;height:14px;"></i> Blockchain</a>
+        <a href="/archive"><i data-lucide="archive" style="width:14px;height:14px;"></i> Archive</a>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <button class="dropdown-toggle" aria-haspopup="true">
+        Company <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+      </button>
+      <div class="dropdown-menu">
+        <a href="/about"><i data-lucide="users" style="width:14px;height:14px;"></i> About</a>
+        <a href="/contact"><i data-lucide="mail" style="width:14px;height:14px;"></i> Contact</a>
+        <a href="/admin"><i data-lucide="shield-alert" style="width:14px;height:14px;"></i> Admin</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="navbar-right">
+    {% if user %}
+      <a href="/dashboard" class="user-pill">
+        <img src="https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=649748&color=fff&size=40" alt="{{ user.name }}">
+        <span>{{ user.name.split()[0] }}</span>
+      </a>
+      <a href="/auth/logout" class="btn-signout btn">Sign Out</a>
+    {% else %}
+      <a href="/auth" class="btn btn-nav-auth">Login / Register</a>
+    {% endif %}
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <i data-lucide="menu" style="width:22px;height:22px;"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Nav -->
+<div class="mobile-nav" id="mobile-nav" role="navigation" aria-label="Mobile navigation">
+  <a href="/">Home</a>
+  <a href="/elections">Elections</a>
+  <a href="/results">Results</a>
+  <a href="/debate">Debate</a>
+  <a href="/ask-ai">History AI</a>
+  <a href="/how-it-works">How It Works</a>
+  <a href="/leaderboard">Leaderboard</a>
+  <a href="/forum">Forum</a>
+  <a href="/blockchain">Blockchain</a>
+  <a href="/archive">Archive</a>
+  <a href="/about">About</a>
+  <a href="/contact">Contact</a>
+  <a href="/admin">Admin</a>
+  {% if user %}
+    <a href="/dashboard">Dashboard</a>
+    <a href="/auth/logout">Sign Out</a>
+  {% else %}
+    <a href="/auth">Login / Register</a>
+  {% endif %}
+</div>
+
+<!-- Main Content -->
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="brand-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          VotingBox
+        </div>
+        <p>The next generation of democratic participation. Secure, transparent, and accessible to every citizen.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/elections">Elections</a></li>
+          <li><a href="/results">Results</a></li>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/leaderboard">Leaderboard</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="/forum">Forum</a></li>
+          <li><a href="/debate">Debate</a></li>
+          <li><a href="/archive">Archive</a></li>
+          <li><a href="/ask-ai">History AI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/about">About</a></li>
+          <li><a href="/contact">Contact</a></li>
+          <li><a href="/about-site">About Site</a></li>
+          <li><a href="/blockchain">Blockchain</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 VotingBox. All rights reserved.</span>
+      <span>Made by Group 2 | VotingBox 2026</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

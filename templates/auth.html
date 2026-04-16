@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block title %}Login & Register — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.auth-page {
+  min-height: calc(100vh - 130px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  position: relative;
+}
+.auth-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(100,151,72,0.07) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 20%, rgba(59,130,246,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+.auth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  max-width: 920px;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.auth-panel { padding: 2.5rem; }
+.auth-panel-left { border-right: 1px solid var(--border); }
+.auth-panel-right { background: var(--surface-hover); }
+.auth-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.4rem; }
+.auth-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.6; }
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  color: #333;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.google-btn:hover { background: #f5f5f5; box-shadow: var(--shadow); }
+.google-icon { width: 18px; height: 18px; }
+.demo-accounts { margin-top: 1.25rem; }
+.demo-accounts-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+.demo-btns { display: flex; flex-direction: column; gap: 0.5rem; }
+.demo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+.demo-btn:hover { border-color: var(--primary); color: var(--text); }
+.demo-btn .role-badge { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; }
+.error-msg { color: #EF4444; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+.checkbox-row { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
+.checkbox-row input[type="checkbox"] { width: auto; margin-top: 2px; }
+@media (max-width: 640px) {
+  .auth-grid { grid-template-columns: 1fr; }
+  .auth-panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+
+<div class="auth-page">
+  <div class="auth-grid fade-in">
+    <!-- Login Panel -->
+    <div class="auth-panel auth-panel-left">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+        <i data-lucide="log-in" style="width:18px;height:18px;color:var(--accent);"></i>
+      </div>
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-sub">Log in to your VotingBox account to cast your vote and track elections.</p>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <div class="input-wrap">
+            <i data-lucide="mail" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+            <label class="form-label" style="margin-bottom:0;">Password</label>
+            <a href="#" style="font-size:0.75rem;color:var(--primary);">Forgot Password?</a>
+          </div>
+          <div class="input-wrap">
+            <i data-lucide="lock" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+        <div class="error-msg" id="login-error"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:0.5rem;" id="login-btn">
+          Login to VotingBox
+        </button>
+      </form>
+
+      <div class="divider-text"><span>Or continue with</span></div>
+      <button class="google-btn" onclick="handleGoogleLogin()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+
+      <!-- Demo Accounts -->
+      <div class="demo-accounts">
+        <div class="demo-accounts-title">⚡ Try a Demo Account</div>
+        <div class="demo-btns">
+          <button class="demo-btn" onclick="quickLogin('voter@example.com','voter123')">
+            <span>voter@example.com</span>
+            <span class="role-badge" style="background:rgba(100,151,72,0.15);color:var(--accent);">Voter</span>
+          </button>
+          <button class="demo-btn" onclick="quickLogin('admin@example.com','admin123')">
+            <span>admin@example.com</span>
+            <span class="role-badge" style="background:rgba(239,68,68,0.15);color:#F87171;">Admin</span>
+          </button>
+          <button class="demo-btn" onclick="quickLogin('observer@example.com','observer123')">
+            <span>observer@example.com</span>
+            <span class="role-badge" style="background:rgba(59,130,246,0.15);color:#93C5FD;">Observer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Panel -->
+    <div class="auth-panel auth-panel-right">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+        <i data-lucide="user-plus" style="width:18px;height:18px;color:var(--accent);"></i>
+      </div>
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-sub">Join the future of democratic participation. Register now and start voting.</p>
+
+      <form id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <div class="input-wrap">
+            <i data-lucide="user" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="text" id="reg-name" placeholder="Your full name" required autocomplete="name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <div class="input-wrap">
+            <i data-lucide="mail" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="email" id="reg-email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <i data-lucide="lock" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="password" id="reg-password" placeholder="At least 6 characters" required minlength="6">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <div class="input-wrap">
+            <i data-lucide="lock" class="input-icon" style="width:16px;height:16px;"></i>
+            <input type="password" id="reg-confirm" placeholder="Repeat your password" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input type="checkbox" required id="reg-terms">
+            <span>I agree to the <a href="/terms" style="color:var(--primary);">Terms of Service</a> and <a href="/privacy" style="color:var(--primary);">Privacy Policy</a></span>
+          </label>
+        </div>
+        <div class="error-msg" id="reg-error"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="reg-btn">
+          <i data-lucide="user-plus" style="width:16px;height:16px;"></i>
+          Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const redirectTo = '{{ redirect_to }}';
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Signing in...';
+  btn.disabled = true;
+  await new Promise(r => setTimeout(r, 1200));
+  const res = await fetch('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: document.getElementById('login-email').value,
+      password: document.getElementById('login-password').value,
+      redirect: redirectTo
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Welcome back! Redirecting...', 'success');
+    setTimeout(() => window.location.href = data.redirect || '/dashboard', 800);
+  } else {
+    btn.innerHTML = 'Login to VotingBox';
+    btn.disabled = false;
+    errEl.textContent = data.error || 'Invalid credentials.';
+    errEl.style.display = 'block';
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('reg-btn');
+  const errEl = document.getElementById('reg-error');
+  errEl.style.display = 'none';
+  const pw = document.getElementById('reg-password').value;
+  const pw2 = document.getElementById('reg-confirm').value;
+  if (pw !== pw2) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Creating account...';
+  btn.disabled = true;
+  await new Promise(r => setTimeout(r, 1200));
+  const res = await fetch('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value, password: pw })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Account created! Redirecting...', 'success');
+    setTimeout(() => window.location.href = data.redirect || '/dashboard', 800);
+  } else {
+    btn.innerHTML = '<i data-lucide="user-plus" style="width:16px;height:16px;"></i> Create Account';
+    btn.disabled = false;
+    errEl.textContent = data.error || 'Registration failed.';
+    errEl.style.display = 'block';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+}
+
+async function quickLogin(email, password) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = password;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Signing in...';
+  btn.disabled = true;
+  await new Promise(r => setTimeout(r, 1000));
+  const res = await fetch('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, redirect: redirectTo })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Logged in as ' + email, 'success');
+    setTimeout(() => window.location.href = data.redirect || '/dashboard', 600);
+  }
+}
+
+async function handleGoogleLogin() {
+  showToast('Connecting to Google...', 'success');
+  await new Promise(r => setTimeout(r, 1500));
+  // Mock: auto-login as demo voter
+  await quickLogin('voter@example.com', 'voter123');
+}
+</script>
+{% endblock %}

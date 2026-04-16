@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Public Forum — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.comment-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+.comment-card:hover { border-color: rgba(255,255,255,0.12); }
+.comment-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.comment-author { display: flex; align-items: center; gap: 0.6rem; }
+.verified-badge { display: flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; color: #93C5FD; font-weight: 600; }
+.vote-actions { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.vote-btn:hover { border-color: var(--primary); color: var(--text); }
+.vote-btn.upvoted { background: rgba(100,151,72,0.12); border-color: var(--primary); color: var(--accent); }
+.vote-btn.downvoted { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #F87171; }
+.post-input-area {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.post-input-area textarea {
+  resize: none;
+  min-height: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.forum-stats { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.forum-stat span { font-size: 0.85rem; color: var(--text-muted); }
+.forum-stat strong { color: var(--text); }
+</style>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="message-square" style="width:12px;height:12px;"></i> Community</div>
+    <h1 class="fade-in">Public <span style="color:var(--accent);">Forum</span></h1>
+    <p class="fade-in fade-in-delay-1">Join the democratic conversation. Share your thoughts, ask questions, and engage with fellow citizens.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:4rem;">
+  <!-- Stats -->
+  <div class="forum-stats fade-in">
+    <div class="forum-stat"><strong id="post-count">{{ posts|length }}</strong> <span>Posts</span></div>
+    <div class="forum-stat"><strong>1,240</strong> <span>Verified Users</span></div>
+    <div class="forum-stat"><strong>328</strong> <span>Active Today</span></div>
+    <div style="margin-left:auto;">
+      <select style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.85rem;font-size:0.875rem;cursor:pointer;width:auto;" id="forum-filter" onchange="sortForum()">
+        <option value="recent">Most Recent</option>
+        <option value="upvoted">Most Upvoted</option>
+        <option value="verified">Verified Only</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Post Input -->
+  <div class="post-input-area fade-in">
+    <div style="display:flex;gap:0.75rem;margin-bottom:0.75rem;">
+      <img src="https://ui-avatars.com/api/?name={{ user.name if user else 'Guest' }}&background=649748&color=fff&size=40" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;" alt="Avatar">
+      <textarea id="new-post-text" placeholder="Share your thoughts on the current elections..." rows="3"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary btn-sm" onclick="submitPost()" id="post-btn">
+        <i data-lucide="send" style="width:14px;height:14px;"></i>
+        Post Comment
+      </button>
+    </div>
+  </div>
+
+  <!-- Comments -->
+  <div id="comments-list">
+    {% for post in posts %}
+    <div class="comment-card fade-in" data-upvotes="{{ post.upvotes }}" data-verified="{{ 'true' if post.verified else 'false' }}" id="post-{{ post.id }}">
+      <div class="comment-header">
+        <div class="comment-author">
+          <img src="https://ui-avatars.com/api/?name={{ post.author|replace(' ','+') }}&background={{ ['4F46E5','059669','DC2626','D97706'][loop.index0 % 4] }}&color=fff&size=40"
+               style="width:38px;height:38px;border-radius:50%;" alt="{{ post.author }}">
+          <div>
+            <div style="font-weight:700;font-size:0.9rem;display:flex;align-items:center;gap:0.4rem;">
+              {{ post.author }}
+              {% if post.verified %}
+              <span class="verified-badge"><i data-lucide="badge-check" style="width:13px;height:13px;"></i> Verified</span>
+              {% endif %}
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">{{ post.time }}</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.9rem;color:rgba(255,255,255,0.85);line-height:1.7;">{{ post.text }}</p>
+      <div class="vote-actions">
+        <button class="vote-btn" onclick="votePost(this, 'up')" id="up-{{ post.id }}">
+          👍 <span class="vote-count">{{ post.upvotes }}</span>
+        </button>
+        <button class="vote-btn" onclick="votePost(this, 'down')" id="down-{{ post.id }}">
+          👎 <span class="vote-count">{{ post.downvotes }}</span>
+        </button>
+        <button class="vote-btn">
+          💬 <span>{{ post.replies }}</span>
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function votePost(btn, type) {
+  if (btn.classList.contains(type === 'up' ? 'upvoted' : 'downvoted')) return;
+  btn.classList.toggle(type === 'up' ? 'upvoted' : 'downvoted');
+  const count = btn.querySelector('.vote-count');
+  count.textContent = parseInt(count.textContent) + 1;
+}
+
+async function submitPost() {
+  const text = document.getElementById('new-post-text').value.trim();
+  if (!text) { showToast('Please write something first.', 'error'); return; }
+  const btn = document.getElementById('post-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Posting...';
+
+  const author = '{{ user.name if user else "Anonymous" }}';
+  const res = await fetch('/forum/post', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, author })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    document.getElementById('new-post-text').value = '';
+    const list = document.getElementById('comments-list');
+    const div = document.createElement('div');
+    div.className = 'comment-card';
+    div.style.borderColor = 'rgba(100,151,72,0.3)';
+    div.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-author">
+          <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(author)}&background=649748&color=fff&size=40" style="width:38px;height:38px;border-radius:50%;" alt="">
+          <div>
+            <div style="font-weight:700;font-size:0.9rem;">${author}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">Just now</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.9rem;color:rgba(255,255,255,0.85);line-height:1.7;">${data.post.text}</p>
+      <div class="vote-actions">
+        <button class="vote-btn" onclick="votePost(this,'up')">👍 <span class="vote-count">0</span></button>
+        <button class="vote-btn" onclick="votePost(this,'down')">👎 <span class="vote-count">0</span></button>
+        <button class="vote-btn">💬 0</button>
+      </div>`;
+    list.insertBefore(div, list.firstChild);
+    const countEl = document.getElementById('post-count');
+    if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
+    showToast('Comment posted!', 'success');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="send" style="width:14px;height:14px;"></i> Post Comment';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function sortForum() {
+  // Client-side sort demonstration
+  showToast('Filter applied', 'success', 1500);
+}
+</script>
+{% endblock %}

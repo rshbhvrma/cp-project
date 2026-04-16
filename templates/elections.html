@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Elections — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.election-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  position: relative;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+.election-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: rgba(255,255,255,0.12); }
+.election-card.open { border-top: 3px solid var(--primary); }
+.election-card.open:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.5), var(--glow); border-color: rgba(100,151,72,0.3); }
+.status-badge { position: absolute; top: 1rem; right: 1rem; }
+.election-icon-box {
+  width: 46px; height: 46px;
+  background: rgba(100,151,72,0.1);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+.election-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.election-deadline { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; margin-bottom: 1.25rem; }
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-width: 180px;
+  width: auto;
+}
+.elections-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+@media (max-width: 900px) { .elections-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .elections-grid { grid-template-columns: 1fr; } }
+</style>
+
+<!-- Page Hero -->
+<section class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="vote" style="width:12px;height:12px;"></i> Active Elections</div>
+    <h1 class="fade-in">Browse <span style="color:var(--accent)">Elections</span></h1>
+    <p class="fade-in fade-in-delay-1">Browse and participate in ongoing elections. Filter by category or sort by deadline.</p>
+  </div>
+</section>
+
+<!-- Filter Bar -->
+<div class="container" style="margin-bottom:2rem;">
+  <div class="filter-bar fade-in">
+    <div style="display:flex;align-items:center;gap:0.5rem;color:var(--text-muted);font-size:0.875rem;">
+      <i data-lucide="filter" style="width:16px;height:16px;"></i> Filter:
+    </div>
+    <select class="filter-select" id="filter-category" onchange="filterElections()">
+      <option value="all">All Categories</option>
+      <option value="Student Council">Student Council</option>
+      <option value="Municipal">Municipal</option>
+      <option value="Corporate">Corporate</option>
+    </select>
+    <select class="filter-select" id="filter-sort" onchange="filterElections()">
+      <option value="deadline-asc">Deadline: Soonest</option>
+      <option value="deadline-desc">Deadline: Latest</option>
+      <option value="az">A → Z</option>
+      <option value="za">Z → A</option>
+    </select>
+    <span id="election-count" style="font-size:0.85rem;color:var(--text-muted);margin-left:auto;">Showing <strong style="color:var(--text);">{{ elections|length }}</strong> elections</span>
+  </div>
+</div>
+
+<!-- Elections Grid -->
+<div class="container" style="margin-bottom:4rem;">
+  <div class="elections-grid" id="elections-grid">
+    {% for e in elections %}
+    <div class="election-card {{ e.status.lower() }} fade-in"
+         data-category="{{ e.category }}"
+         data-title="{{ e.title }}"
+         data-deadline="{{ e.deadline_raw }}"
+         data-status="{{ e.status }}">
+
+      <div class="status-badge">
+        {% if e.status == 'OPEN' %}
+          <span class="badge badge-green"><span class="pulse-dot"></span> OPEN NOW</span>
+        {% elif e.status == 'CLOSED' %}
+          <span class="badge badge-red">● CLOSED</span>
+        {% else %}
+          <span class="badge badge-yellow">● UPCOMING</span>
+        {% endif %}
+      </div>
+
+      <div class="election-icon-box">
+        <i data-lucide="{{ e.icon }}" style="width:20px;height:20px;"></i>
+      </div>
+
+      <span class="badge badge-muted" style="margin-bottom:0.75rem;font-size:0.7rem;">{{ e.category }}</span>
+
+      <h3 class="election-title">{{ e.title }}</h3>
+      <div class="election-deadline">
+        <i data-lucide="calendar" style="width:13px;height:13px;"></i>
+        {{ 'Closed' if e.status == 'CLOSED' else 'Closes' if e.status == 'OPEN' else 'Opens' }}: {{ e.deadline }}
+      </div>
+
+      {% if e.status == 'OPEN' %}
+        <a href="/auth?redirect=/vote/{{ e.id }}" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
+          <i data-lucide="vote" style="width:14px;height:14px;"></i> Vote Now
+        </a>
+      {% else %}
+        <button class="btn btn-glass btn-sm" style="width:100%;justify-content:center;" disabled>
+          {% if e.status == 'CLOSED' %}View Details{% else %}Coming Soon{% endif %}
+        </button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="no-results" style="display:none;text-align:center;padding:4rem 0;color:var(--text-muted);">
+    <i data-lucide="search-x" style="width:48px;height:48px;margin-bottom:1rem;opacity:0.4;"></i>
+    <p>No elections match your filters.</p>
+  </div>
+</div>
+
+<script>
+function filterElections() {
+  const cat = document.getElementById('filter-category').value;
+  const sort = document.getElementById('filter-sort').value;
+  const grid = document.getElementById('elections-grid');
+  let cards = Array.from(grid.querySelectorAll('.election-card'));
+
+  cards.forEach(c => c.style.display = '');
+
+  // Filter
+  cards = cards.filter(c => {
+    const catMatch = cat === 'all' || c.dataset.category === cat;
+    if (!catMatch) c.style.display = 'none';
+    return catMatch;
+  });
+
+  // Sort
+  cards.sort((a, b) => {
+    if (sort === 'deadline-asc') return a.dataset.deadline.localeCompare(b.dataset.deadline);
+    if (sort === 'deadline-desc') return b.dataset.deadline.localeCompare(a.dataset.deadline);
+    if (sort === 'az') return a.dataset.title.localeCompare(b.dataset.title);
+    if (sort === 'za') return b.dataset.title.localeCompare(a.dataset.title);
+  });
+
+  cards.forEach(c => grid.appendChild(c));
+  
+  const visible = cards.length;
+  document.getElementById('election-count').innerHTML = `Showing <strong style="color:var(--text);">${visible}</strong> elections`;
+  document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+</script>
+{% endblock %}

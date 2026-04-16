@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Candidate Debate Board — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.debate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+.debate-card:hover { border-color: rgba(255,255,255,0.12); box-shadow: var(--shadow); }
+.candidate-support-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.filter-pill-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-pill-btn.active, .filter-pill-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.new-arg-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.debate-stats { display: flex; gap: 2rem; margin-bottom:1.5rem; flex-wrap: wrap; }
+.debate-stat { font-size: 0.85rem; color: var(--text-muted); }
+.debate-stat strong { color: var(--text); }
+</style>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="swords" style="width:12px;height:12px;"></i> Political Discourse</div>
+    <h1 class="fade-in">Candidate <span style="color:var(--accent);">Debate Board</span></h1>
+    <p class="fade-in fade-in-delay-1">Argue for your candidate. Upvote the best arguments. Let ideas win.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:4rem;">
+  <!-- Stats -->
+  <div class="debate-stats fade-in">
+    <div class="debate-stat"><strong id="arg-count">{{ posts|length }}</strong> Arguments</div>
+    <div class="debate-stat"><strong>892</strong> Participants</div>
+    <div class="debate-stat"><strong>Last activity:</strong> 2 minutes ago</div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;" class="fade-in" id="filter-bar">
+    <button class="filter-pill-btn active" onclick="filterDebate('all', this)">All</button>
+    <button class="filter-pill-btn" onclick="filterDebate('Narendra Modi', this)" style="--fc:#FF9933;">
+      <span style="width:7px;height:7px;background:#FF9933;border-radius:50%;display:inline-block;margin-right:3px;"></span>Narendra Modi
+    </button>
+    <button class="filter-pill-btn" onclick="filterDebate('Rahul Gandhi', this)" style="--fc:#138808;">
+      <span style="width:7px;height:7px;background:#138808;border-radius:50%;display:inline-block;margin-right:3px;"></span>Rahul Gandhi
+    </button>
+    <button class="filter-pill-btn" onclick="filterDebate('Arvind Kejriwal', this)" style="--fc:#00B2EF;">
+      <span style="width:7px;height:7px;background:#00B2EF;border-radius:50%;display:inline-block;margin-right:3px;"></span>Arvind Kejriwal
+    </button>
+    <button class="filter-pill-btn" onclick="filterDebate('Mamata Banerjee', this)" style="--fc:#00CCFF;">
+      <span style="width:7px;height:7px;background:#00CCFF;border-radius:50%;display:inline-block;margin-right:3px;"></span>Mamata Banerjee
+    </button>
+  </div>
+
+  <!-- New Argument Form -->
+  <div class="new-arg-form fade-in">
+    <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+      <i data-lucide="plus-circle" style="width:16px;height:16px;color:var(--accent);"></i>
+      Post New Argument
+    </h3>
+    <div class="grid-2" style="gap:0.75rem;margin-bottom:0.75rem;">
+      <div><input type="text" id="arg-author" placeholder="Your name"></div>
+      <select id="arg-candidate" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0.75rem 1rem;font-family:inherit;">
+        <option value="">Select candidate you support</option>
+        <option value="Narendra Modi" data-color="#FF9933">🟠 Narendra Modi</option>
+        <option value="Rahul Gandhi" data-color="#138808">🟢 Rahul Gandhi</option>
+        <option value="Arvind Kejriwal" data-color="#00B2EF">🔵 Arvind Kejriwal</option>
+        <option value="Mamata Banerjee" data-color="#00CCFF">🩵 Mamata Banerjee</option>
+      </select>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <textarea id="arg-text" placeholder="Make your argument..." rows="3" style="resize:none;"></textarea>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+      <input type="text" id="arg-tags" placeholder="Tags (comma-separated, e.g. Economy,Healthcare)" style="max-width:350px;">
+      <button class="btn btn-primary btn-sm" onclick="submitArgument()">
+        <i data-lucide="send" style="width:14px;height:14px;"></i> Post Argument
+      </button>
+    </div>
+  </div>
+
+  <!-- Debate Posts -->
+  <div id="debate-list">
+    {% for post in posts %}
+    <div class="debate-card fade-in" data-candidate="{{ post.candidate }}" id="debate-{{ post.id }}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.85rem;flex-wrap:wrap;gap:0.6rem;">
+        <div>
+          <div style="font-size:0.875rem;font-weight:700;">{{ post.author }}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">{{ post.time }}</div>
+        </div>
+        <div class="candidate-support-pill" style="background:{{ post.candidate_color }}20;color:{{ post.candidate_color }};border:1px solid {{ post.candidate_color }}40;">
+          <span style="width:6px;height:6px;background:{{ post.candidate_color }};border-radius:50%;"></span>
+          {{ post.candidate }}
+        </div>
+      </div>
+      <p style="font-size:0.9rem;line-height:1.7;color:rgba(255,255,255,0.85);margin-bottom:0.85rem;">{{ post.text }}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          {% for tag in post.tags %}
+          <span class="tag-pill">{{ tag }}</span>
+          {% endfor %}
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <button class="vote-btn" onclick="debateVote(this, '{{ post.id }}', 'up')" style="display:flex;align-items:center;gap:0.3rem;padding:0.35rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:inherit;transition:all 0.15s;">
+            👍 <span class="up-count">{{ post.upvotes }}</span>
+          </button>
+          <button class="vote-btn" onclick="debateVote(this, '{{ post.id }}', 'down')" style="display:flex;align-items:center;gap:0.3rem;padding:0.35rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:inherit;transition:all 0.15s;">
+            👎 <span class="down-count">{{ post.downvotes }}</span>
+          </button>
+          <button style="display:flex;align-items:center;gap:0.3rem;padding:0.35rem 0.75rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:inherit;transition:all 0.15s;" onclick="shareDebate('{{ post.candidate }}','{{ post.text[:60] }}')">
+            <i data-lucide="share-2" style="width:12px;height:12px;"></i> Share
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+const candidateColors = {
+  'Narendra Modi': '#FF9933',
+  'Rahul Gandhi': '#138808',
+  'Arvind Kejriwal': '#00B2EF',
+  'Mamata Banerjee': '#00CCFF',
+};
+
+function filterDebate(candidate, btn) {
+  document.querySelectorAll('#filter-bar .filter-pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#debate-list .debate-card').forEach(card => {
+    card.style.display = (candidate === 'all' || card.dataset.candidate === candidate) ? '' : 'none';
+  });
+}
+
+async function debateVote(btn, postId, type) {
+  const res = await fetch('/debate/vote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ post_id: postId, type })
+  });
+  const data = await res.json();
+  if (data.success) {
+    const card = document.getElementById('debate-' + postId);
+    if (card) {
+      card.querySelector('.up-count').textContent = data.upvotes;
+      card.querySelector('.down-count').textContent = data.downvotes;
+    }
+  }
+}
+
+function submitArgument() {
+  const author = document.getElementById('arg-author').value.trim();
+  const candidate = document.getElementById('arg-candidate').value;
+  const text = document.getElementById('arg-text').value.trim();
+  const tags = document.getElementById('arg-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  if (!author || !candidate || !text) { showToast('Please fill all required fields.', 'error'); return; }
+  const color = candidateColors[candidate] || '#649748';
+  const list = document.getElementById('debate-list');
+  const div = document.createElement('div');
+  div.className = 'debate-card';
+  div.dataset.candidate = candidate;
+  div.style.borderColor = color + '30';
+  div.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.85rem;flex-wrap:wrap;gap:0.6rem;">
+      <div><div style="font-size:0.875rem;font-weight:700;">${author}</div><div style="font-size:0.75rem;color:var(--text-muted);">Just now</div></div>
+      <div class="candidate-support-pill" style="background:${color}20;color:${color};border:1px solid ${color}40;display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;">
+        <span style="width:6px;height:6px;background:${color};border-radius:50%;"></span>${candidate}
+      </div>
+    </div>
+    <p style="font-size:0.9rem;line-height:1.7;color:rgba(255,255,255,0.85);margin-bottom:0.85rem;">${text}</p>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+      ${tags.map(t => `<span class="tag-pill">${t}</span>`).join('')}
+    </div>`;
+  list.insertBefore(div, list.firstChild);
+  document.getElementById('arg-author').value = '';
+  document.getElementById('arg-text').value = '';
+  document.getElementById('arg-tags').value = '';
+  const count = document.getElementById('arg-count');
+  if (count) count.textContent = parseInt(count.textContent) + 1;
+  showToast('Argument posted!', 'success');
+}
+
+function shareDebate(candidate, text) {
+  const shareText = `Arguing for ${candidate}: "${text}..." — Join the debate on VotingBox!`;
+  navigator.clipboard.writeText(shareText).then(() => showToast('Argument copied to clipboard!', 'success'));
+}
+</script>
+{% endblock %}

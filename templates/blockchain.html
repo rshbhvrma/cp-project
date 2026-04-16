@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Blockchain Explorer — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.block-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.85rem;
+  position: relative;
+  transition: all 0.2s;
+  animation: blockSlideIn 0.4s ease;
+}
+.block-card:hover { border-color: rgba(100,151,72,0.25); background: var(--surface-hover); }
+.block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem; }
+.block-number { font-size: 1.05rem; font-weight: 800; color: var(--accent); }
+.block-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
+.block-field label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); display: block; margin-bottom: 0.25rem; }
+.block-field .hash-val { font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--accent); display: flex; align-items: center; gap: 0.4rem; }
+.copy-hash-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; transition: color 0.15s; }
+.copy-hash-btn:hover { color: var(--accent); }
+.chain-link { display: flex; align-items: center; justify-content: center; padding: 0.3rem 0; color: var(--border-strong); }
+.stat-banner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.stat-banner-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+.stat-banner-card:hover { border-color: rgba(100,151,72,0.25); }
+.stat-banner-val { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+.stat-banner-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+@media (max-width: 768px) { .stat-banner { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .stat-banner { grid-template-columns: 1fr; } }
+</style>
+
+<!-- Header -->
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="blocks" style="width:12px;height:12px;"></i> Distributed Ledger</div>
+    <h1 class="fade-in">Blockchain <span style="color:var(--accent);">Explorer</span></h1>
+    <p class="fade-in fade-in-delay-1">View the live, immutable ledger of encrypted votes. Every transaction is cryptographically secured and publicly verifiable.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:4rem;">
+  <!-- Network Stats -->
+  <div class="stat-banner fade-in">
+    <div class="stat-banner-card">
+      <div class="stat-banner-val" id="total-blocks">10,455</div>
+      <div class="stat-banner-label">Total Blocks</div>
+    </div>
+    <div class="stat-banner-card">
+      <div class="stat-banner-val" id="total-txns">845,210</div>
+      <div class="stat-banner-label">Verified Transactions</div>
+    </div>
+    <div class="stat-banner-card">
+      <div class="stat-banner-val">256</div>
+      <div class="stat-banner-label">Nodes Active</div>
+    </div>
+    <div class="stat-banner-card">
+      <div class="stat-banner-val">9.2 GH/s</div>
+      <div class="stat-banner-label">Hash Rate</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="form-group fade-in" style="max-width:520px;margin-bottom:2rem;">
+    <div class="input-wrap">
+      <i data-lucide="search" class="input-icon" style="width:16px;height:16px;"></i>
+      <input type="text" id="block-search" placeholder="Search by block number or hash..." oninput="filterBlocks()" style="padding-left:2.5rem;">
+    </div>
+  </div>
+
+  <!-- Blocks List -->
+  <div id="blocks-container"></div>
+  <div id="no-blocks" style="display:none;text-align:center;padding:3rem;color:var(--text-muted);">
+    No blocks match your search.
+  </div>
+</div>
+
+<script>
+let blockCount = 10450;
+let blocks = [];
+
+function generateHash() {
+  let hash = '0x';
+  const chars = '0123456789abcdef';
+  for (let i = 0; i < 64; i++) hash += chars[Math.floor(Math.random() * chars.length)];
+  return hash;
+}
+
+function truncateHash(h) { return h.slice(0, 8) + '...' + h.slice(-6); }
+
+function createBlock() {
+  blockCount++;
+  const hash = generateHash();
+  const prevHash = blocks.length > 0 ? blocks[0].hash : generateHash();
+  const txns = Math.floor(Math.random() * 50) + 5;
+  return { num: blockCount, hash, prevHash, txns, time: new Date().toISOString() };
+}
+
+function renderBlock(block, prepend = false) {
+  const container = document.getElementById('blocks-container');
+  const div = document.createElement('div');
+  div.className = 'block-card fade-in';
+  div.dataset.num = block.num;
+  div.dataset.hash = block.hash;
+  div.innerHTML = `
+    <div class="block-header">
+      <span class="block-number"># ${block.num.toLocaleString()}</span>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span class="badge" style="background:rgba(100,151,72,0.1);color:var(--accent);font-size:0.7rem;padding:0.25rem 0.6rem;border-radius:999px;">
+          ${block.txns} txns
+        </span>
+        <span class="badge badge-green" style="font-size:0.65rem;">✓ Verified</span>
+      </div>
+    </div>
+    <div class="block-body">
+      <div class="block-field">
+        <label>Block Hash</label>
+        <div class="hash-val">
+          <span>${truncateHash(block.hash)}</span>
+          <button class="copy-hash-btn" onclick="copyHash('${block.hash}')" title="Copy hash">
+            <i data-lucide="copy" style="width:12px;height:12px;"></i>
+          </button>
+        </div>
+      </div>
+      <div class="block-field">
+        <label>Previous Hash</label>
+        <div class="hash-val">
+          <span>${truncateHash(block.prevHash)}</span>
+        </div>
+      </div>
+      <div class="block-field">
+        <label>Timestamp</label>
+        <div style="font-size:0.8rem;">${new Date(block.time).toLocaleString()}</div>
+      </div>
+      <div class="block-field">
+        <label>Status</label>
+        <div style="font-size:0.8rem;color:var(--accent);font-weight:600;">Immutable ✓</div>
+      </div>
+    </div>`;
+
+  if (prepend && container.firstChild) {
+    container.insertBefore(div, container.firstChild);
+    // chain link between new block and previous
+    const link = document.createElement('div');
+    link.className = 'chain-link';
+    link.innerHTML = `<i data-lucide="link" style="width:16px;height:16px;"></i>`;
+    container.insertBefore(link, div.nextSibling);
+  } else {
+    if (container.children.length > 0) {
+      const link = document.createElement('div');
+      link.className = 'chain-link';
+      link.innerHTML = `<i data-lucide="link" style="width:16px;height:16px;"></i>`;
+      container.appendChild(link);
+    }
+    container.appendChild(div);
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function copyHash(hash) {
+  navigator.clipboard.writeText(hash).then(() => showToast('Hash copied!', 'success', 2000));
+}
+
+function filterBlocks() {
+  const query = document.getElementById('block-search').value.toLowerCase();
+  const cards = document.querySelectorAll('.block-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const match = card.dataset.num.toString().includes(query) || card.dataset.hash.includes(query);
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+    // Hide adjacent chain links
+    const next = card.nextElementSibling;
+    if (next && next.classList.contains('chain-link')) next.style.display = match ? '' : 'none';
+  });
+  document.getElementById('no-blocks').style.display = visible === 0 ? 'block' : 'none';
+}
+
+// Initialize blocks
+for (let i = 0; i < 5; i++) {
+  const b = createBlock();
+  blocks.push(b);
+}
+blocks.forEach(b => renderBlock(b));
+
+// Add new block every 15 seconds
+setInterval(() => {
+  const b = createBlock();
+  blocks.unshift(b);
+  renderBlock(b, true);
+  // Update stats
+  const tb = document.getElementById('total-blocks');
+  const tt = document.getElementById('total-txns');
+  if (tb) tb.textContent = parseInt(tb.textContent.replace(',','')).toLocaleString() + 1;
+  if (tt) {
+    const cur = parseInt(tt.textContent.replace(',',''));
+    tt.textContent = (cur + b.txns).toLocaleString();
+  }
+  showToast(`New Block #${b.num} added to chain`, 'success', 2000);
+  // Keep max 20 blocks in view
+  const container = document.getElementById('blocks-container');
+  while (container.children.length > 25) container.removeChild(container.lastChild);
+}, 15000);
+</script>
+{% endblock %}

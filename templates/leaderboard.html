@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Live Leaderboard — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.rank-cell { font-size: 1.1rem; font-weight: 900; color: var(--text-muted); }
+.rank-1 { color: #FFD700; }
+.rank-2 { color: #C0C0C0; }
+.rank-3 { color: #CD7F32; }
+.trend-up { color: #4ADE80; font-weight: 700; font-size: 0.8rem; }
+.trend-down { color: #F87171; font-weight: 700; font-size: 0.8rem; }
+.turnout-bar { width: 80px; display: inline-block; vertical-align: middle; }
+.leaderboard-timer { font-size: 0.8rem; color: var(--text-muted); }
+.leaderboard-timer .time-val { color: var(--accent); font-weight: 700; }
+</style>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="trophy" style="width:12px;height:12px;"></i> Rankings</div>
+    <h1 class="fade-in">Live <span style="color:var(--accent);">Leaderboard</span></h1>
+    <p class="fade-in fade-in-delay-1">Real-time rankings of all active elections. Updates every second.</p>
+    <div style="margin-top:1rem;" class="fade-in fade-in-delay-2">
+      <span class="leaderboard-timer">Last updated: <span class="time-val" id="last-updated">0s</span> ago</span>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:4rem;">
+  <!-- Tabs -->
+  <div class="tabs-container">
+    <div class="tabs" style="margin-bottom:1.5rem;">
+      <button class="tab-btn active" data-tab="active">
+        <i data-lucide="flame" style="width:14px;height:14px;"></i> Most Active
+      </button>
+      <button class="tab-btn" data-tab="contested">
+        <i data-lucide="sword" style="width:14px;height:14px;"></i> Most Contested
+      </button>
+      <button class="tab-btn" data-tab="newest">
+        <i data-lucide="clock" style="width:14px;height:14px;"></i> Newest
+      </button>
+    </div>
+
+    <!-- Tab 1: Most Active -->
+    <div id="tab-active" class="tab-content active">
+      <div class="card" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Election</th>
+                <th>Category</th>
+                <th>Total Votes</th>
+                <th>Turnout %</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set rows = [
+                (1, 'National General Election 2026', 'National', 12450, 65, '↑', 2),
+                (2, 'State Assembly Election', 'State', 8900, 54, '↓', 1),
+                (3, 'Municipal Corporation', 'Local', 5200, 42, '↑', 4),
+                (4, 'University Senate', 'Education', 3150, 78, '↑', 1),
+                (5, 'Tech Union Board', 'Corporate', 1200, 35, '↓', 2),
+              ] %}
+              {% for rank, name, cat, votes, turnout, dir, delta in rows %}
+              <tr>
+                <td><div class="rank-cell rank-{{ rank }}">
+                  {% if rank == 1 %}🥇{% elif rank == 2 %}🥈{% elif rank == 3 %}🥉{% else %}#{{ rank }}{% endif %}
+                </div></td>
+                <td><div style="font-weight:600;font-size:0.9rem;">{{ name }}</div></td>
+                <td><span class="badge badge-muted" style="font-size:0.7rem;">{{ cat }}</span></td>
+                <td><strong>{{ '{:,}'.format(votes) }}</strong></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <div class="progress-bar-bg turnout-bar">
+                      <div class="progress-bar-fill" style="width:{{ turnout }}%;height:6px;"></div>
+                    </div>
+                    <span style="font-size:0.8rem;font-weight:700;">{{ turnout }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="{{ 'trend-up' if dir == '↑' else 'trend-down' }}">
+                    {{ dir }}{{ delta }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Most Contested -->
+    <div id="tab-contested" class="tab-content">
+      <div class="card" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Election</th>
+                <th>Margin</th>
+                <th>Leader vs Runner-Up</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set contested = [
+                (1, 'State Assembly Election', 23, 'Mamata Banerjee', 'Yogi Adityanath'),
+                (2, 'Tech Union Board', 45, 'Priya Sharma', 'Rahul Verma'),
+                (3, 'Municipal Corporation', 112, 'Arvind Kejriwal', 'Manoj Tiwari'),
+              ] %}
+              {% for rank, name, margin, leader, runner in contested %}
+              <tr>
+                <td><div class="rank-cell rank-{{ rank }}">{% if rank == 1 %}🥇{% elif rank == 2 %}🥈{% else %}🥉{% endif %}</div></td>
+                <td><div style="font-weight:600;font-size:0.9rem;">{{ name }}</div></td>
+                <td>
+                  <span style="background:rgba(239,68,68,0.1);color:#F87171;border:1px solid rgba(239,68,68,0.2);padding:0.2rem 0.6rem;border-radius:999px;font-size:0.75rem;font-weight:700;">
+                    {{ margin }} votes
+                  </span>
+                </td>
+                <td>
+                  <div style="font-size:0.85rem;">
+                    <strong style="color:var(--accent);">{{ leader }}</strong>
+                    <span style="color:var(--text-muted);"> vs. </span>
+                    {{ runner }}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Newest -->
+    <div id="tab-newest" class="tab-content">
+      <div class="card" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Election</th>
+                <th>Category</th>
+                <th>Created</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set newest = [
+                ('University Senate', 'Education', '2h ago', 'LIVE'),
+                ('Tech Union Board', 'Corporate', '5h ago', 'LIVE'),
+                ('National General Election', 'National', '1d ago', 'LIVE'),
+              ] %}
+              {% for name, cat, created, status in newest %}
+              <tr>
+                <td><div style="font-weight:600;font-size:0.9rem;">{{ name }}</div></td>
+                <td><span class="badge badge-muted" style="font-size:0.7rem;">{{ cat }}</span></td>
+                <td><span style="font-size:0.85rem;color:var(--text-muted);">{{ created }}</span></td>
+                <td>
+                  <span class="badge badge-green" style="font-size:0.65rem;"><span class="pulse-dot"></span> {{ status }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let secondsAgo = 0;
+setInterval(() => {
+  secondsAgo++;
+  document.getElementById('last-updated').textContent = secondsAgo + 's';
+  if (secondsAgo >= 30) secondsAgo = 0;
+}, 1000);
+</script>
+{% endblock %}

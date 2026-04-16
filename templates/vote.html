@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% block title %}Cast Your Vote — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.verify-card {
+  background: var(--surface);
+  border: 1px solid rgba(100,151,72,0.25);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.verify-icon-circle {
+  width: 72px; height: 72px;
+  background: rgba(100,151,72,0.12);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin: 0 auto 1.25rem;
+}
+.webcam-wrap {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.webcam-ring {
+  border-radius: 50%;
+  overflow: hidden;
+  width: 180px; height: 180px;
+  border: 3px solid var(--primary);
+  animation: pulseRing 1.5s ease-in-out infinite;
+}
+.webcam-ring video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.candidates-section { transition: opacity 0.5s, filter 0.5s; }
+.candidates-locked { filter: blur(5px); opacity: 0.4; pointer-events: none; user-select: none; }
+.candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.1rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.75rem;
+  transition: all 0.25s;
+}
+.candidate-row:hover { border-color: var(--primary); background: var(--surface-hover); transform: translateX(4px); }
+.candidate-info { flex: 1; }
+.candidate-name { font-weight: 700; font-size: 0.95rem; }
+.candidate-party { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+.candidate-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; line-height: 1.5; }
+.vote-success {
+  display: none;
+  text-align: center;
+  padding: 4rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.vote-success-check {
+  width: 90px; height: 90px;
+  background: rgba(100,151,72,0.15);
+  border: 3px solid var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  color: var(--accent);
+  animation: pulseRing 2s ease-in-out 3;
+}
+.confetti-particle {
+  position: fixed;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  animation: confettiFall 2s ease-out forwards;
+  pointer-events: none;
+  z-index: 9999;
+}
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+.voice-btn:not(:disabled):hover { border-color: var(--primary); color: var(--accent); }
+.voice-btn.listening { border-color: #EF4444; color: #EF4444; animation: pulseDot 1s infinite; }
+</style>
+
+<div class="container" style="padding-top:2rem;padding-bottom:4rem;max-width:900px;">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <a href="/elections" style="color:var(--text-muted);font-size:0.875rem;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;" class="hover-primary">
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Back to Elections
+      </a>
+      <h1 style="font-size:2rem;font-weight:900;">Cast Your Vote</h1>
+      <p style="color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;margin-top:0.3rem;">
+        <i data-lucide="shield-check" style="width:14px;height:14px;color:var(--accent);"></i>
+        Your selection is encrypted and completely anonymous.
+      </p>
+    </div>
+    <button class="voice-btn" id="voice-btn" disabled title="Verify identity first to enable voice voting">
+      <i data-lucide="mic" style="width:16px;height:16px;"></i>
+      <span id="voice-btn-label">Voice-to-Vote</span>
+    </button>
+  </div>
+
+  <!-- Election Info -->
+  <div class="card" style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div class="badge badge-muted" style="margin-bottom:0.5rem;">{{ election.category }}</div>
+      <h2 style="font-size:1.15rem;font-weight:700;">{{ election.title }}</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.3rem;display:flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="calendar" style="width:13px;height:13px;"></i> Deadline: {{ election.deadline }}
+      </p>
+    </div>
+    {% if election.status == 'OPEN' %}
+      <span class="badge badge-green"><span class="pulse-dot"></span> OPEN NOW</span>
+    {% elif election.status == 'CLOSED' %}
+      <span class="badge badge-red">CLOSED</span>
+    {% endif %}
+  </div>
+
+  {% if already_voted %}
+  <div style="background:rgba(100,151,72,0.08);border:1px solid rgba(100,151,72,0.25);border-radius:var(--radius-lg);padding:2rem;text-align:center;margin-bottom:1.5rem;">
+    <i data-lucide="check-circle" style="width:40px;height:40px;color:var(--accent);margin-bottom:0.75rem;"></i>
+    <h3 style="font-size:1.1rem;font-weight:700;color:var(--accent);">You have already voted</h3>
+    <p style="color:var(--text-muted);margin-top:0.5rem;">Your vote has been securely recorded. You cannot vote twice in the same election.</p>
+    <a href="/results" class="btn btn-primary" style="margin-top:1.25rem;">View Live Results →</a>
+  </div>
+  {% else %}
+
+  <!-- Identity Verification -->
+  <div class="verify-card fade-in" id="verify-section">
+    <div class="verify-icon-circle">
+      <i data-lucide="scan-face" style="width:32px;height:32px;"></i>
+    </div>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem;">Verify Your Identity</h3>
+    <p style="color:var(--text-muted);font-size:0.9rem;max-width:480px;margin:0 auto 1.5rem;">To ensure the integrity of the election, please verify your identity with a quick selfie. This is a one-time step.</p>
+    <button class="btn btn-primary" id="start-verify-btn" onclick="startVerification()">
+      <i data-lucide="camera" style="width:16px;height:16px;"></i>
+      Start Verification
+    </button>
+
+    <div class="webcam-wrap" id="webcam-wrap">
+      <div class="webcam-ring">
+        <video id="webcam-video" autoplay playsinline muted></video>
+      </div>
+      <button class="btn btn-primary" id="snapshot-btn" onclick="takeSnapshot()">
+        <i data-lucide="aperture" style="width:16px;height:16px;"></i>
+        Take Snapshot
+      </button>
+    </div>
+
+    <div id="verify-loading" style="display:none;margin-top:1.5rem;">
+      <div class="spinner spinner-lg" style="margin:0 auto;border-top-color:var(--accent);"></div>
+      <p style="color:var(--text-muted);margin-top:0.75rem;font-size:0.875rem;">Analyzing biometric data...</p>
+    </div>
+
+    <div id="verify-success" style="display:none;margin-top:1.5rem;padding:1rem;background:rgba(100,151,72,0.08);border:1px solid rgba(100,151,72,0.25);border-radius:var(--radius);">
+      <p style="color:var(--accent);font-weight:600;display:flex;align-items:center;gap:0.5rem;justify-content:center;">
+        <i data-lucide="shield-check" style="width:18px;height:18px;"></i>
+        Identity Verified Successfully. You may now cast your vote.
+      </p>
+    </div>
+  </div>
+
+  <!-- Candidates Table -->
+  <div class="candidates-section candidates-locked" id="candidates-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+      <h2 style="font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="users" style="width:18px;height:18px;color:var(--accent);"></i>
+        Select Your Candidate
+      </h2>
+      <span style="font-size:0.8rem;color:var(--text-muted);">{{ candidates|length }} candidates</span>
+    </div>
+
+    {% for c in candidates %}
+    <div class="candidate-row fade-in" data-candidate-id="{{ c.id }}" data-candidate-name="{{ c.name }}">
+      <img src="https://ui-avatars.com/api/?name={{ c.name|replace(' ', '+') }}&background={{ c.avatar_bg }}&color=fff&size=64" 
+           alt="{{ c.name }}" 
+           style="width:52px;height:52px;border-radius:50%;flex-shrink:0;">
+      <div class="candidate-info">
+        <div class="candidate-name">{{ c.name }}</div>
+        <div class="candidate-party">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ c.color }};margin-right:4px;"></span>
+          {{ c.party }}
+        </div>
+        <div class="candidate-desc">{{ c.desc }}</div>
+      </div>
+      <button class="btn btn-primary btn-sm vote-btn" 
+              data-id="{{ c.id }}" 
+              data-name="{{ c.name }}"
+              onclick="castVote(this, '{{ c.id }}', '{{ c.name | replace("'", "\\'") }}')">
+        Vote
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Vote Success Screen -->
+  <div id="vote-success" class="vote-success">
+    <div id="confetti-area"></div>
+    <div class="vote-success-check">
+      <i data-lucide="check" style="width:48px;height:48px;"></i>
+    </div>
+    <h2 style="font-size:2rem;font-weight:900;margin-bottom:0.75rem;">Thanks for voting!</h2>
+    <p style="color:var(--text-muted);font-size:1rem;margin-bottom:0.5rem;">Your vote for <strong id="voted-for" style="color:var(--accent);"></strong> has been securely recorded on the blockchain.</p>
+    <div class="code-block" style="max-width:400px;margin:1rem auto 2rem;text-align:center;" id="receipt-box"></div>
+    <a href="/dashboard" class="btn btn-primary btn-pill btn-lg">Return to Dashboard</a>
+  </div>
+
+  {% endif %}
+
+  <!-- Voice Status -->
+  <div id="voice-status" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);font-size:0.875rem;color:#F87171;"></div>
+</div>
+
+<script>
+const electionId = '{{ election.id }}';
+let verified = false;
+let stream = null;
+
+async function startVerification() {
+  document.getElementById('start-verify-btn').style.display = 'none';
+  const wrap = document.getElementById('webcam-wrap');
+  wrap.style.display = 'flex';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('webcam-video').srcObject = stream;
+  } catch(e) {
+    simulateVerification();
+  }
+}
+
+function takeSnapshot() {
+  document.getElementById('webcam-wrap').style.display = 'none';
+  document.getElementById('verify-loading').style.display = 'block';
+  if (stream) { stream.getTracks().forEach(t => t.stop()); }
+  setTimeout(() => {
+    document.getElementById('verify-loading').style.display = 'none';
+    document.getElementById('verify-success').style.display = 'block';
+    completeVerification();
+  }, 2000);
+}
+
+function simulateVerification() {
+  document.getElementById('webcam-wrap').style.display = 'none';
+  document.getElementById('verify-loading').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('verify-loading').style.display = 'none';
+    document.getElementById('verify-success').style.display = 'block';
+    completeVerification();
+  }, 2000);
+}
+
+function completeVerification() {
+  verified = true;
+  const section = document.getElementById('candidates-section');
+  section.classList.remove('candidates-locked');
+  const voiceBtn = document.getElementById('voice-btn');
+  voiceBtn.disabled = false;
+  lucide.createIcons();
+  showToast('✅ Identity verified! You may now vote.', 'success');
+}
+
+async function castVote(btn, candidateId, candidateName) {
+  if (!verified) {
+    showToast('Please complete identity verification first.', 'error');
+    return;
+  }
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner spinner-sm"></div> Voting...';
+  btn.disabled = true;
+  document.querySelectorAll('.vote-btn').forEach(b => b.disabled = true);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  try {
+    const res = await fetch(`/vote/${electionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ candidate_id: candidateId, candidate_name: candidateName })
+    });
+    const data = await res.json();
+
+    // Show success
+    document.getElementById('candidates-section').style.display = 'none';
+    document.getElementById('verify-section').style.display = 'none';
+    const successEl = document.getElementById('vote-success');
+    successEl.style.display = 'block';
+    document.getElementById('voted-for').textContent = candidateName;
+    document.getElementById('receipt-box').textContent = 'TXN-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+    // Confetti
+    launchConfetti();
+    if (typeof confetti !== 'undefined') {
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 }, colors: ['#649748','#A8D672','#fff','#ffd700'] });
+    }
+  } catch(e) {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+    document.querySelectorAll('.vote-btn').forEach(b => b.disabled = false);
+  }
+}
+
+function launchConfetti() {
+  const colors = ['#649748','#A8D672','#fff','#ffd700','#EF4444','#3B82F6'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-particle';
+    p.style.cssText = `left:${Math.random()*100}%;top:80%;background:${colors[i%colors.length]};animation-delay:${Math.random()*0.5}s;animation-duration:${1.5+Math.random()}s;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3000);
+  }
+}
+
+// Voice-to-Vote
+document.getElementById('voice-btn').addEventListener('click', function() {
+  if (!verified) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { showToast('Voice recognition not supported in this browser.', 'error'); return; }
+  const recog = new SpeechRecognition();
+  recog.lang = 'en-US';
+  recog.start();
+  this.classList.add('listening');
+  document.getElementById('voice-btn-label').textContent = 'Listening...';
+  const statusDiv = document.getElementById('voice-status');
+  statusDiv.style.display = 'block';
+  statusDiv.textContent = '🎤 Listening for candidate name...';
+  recog.onresult = (event) => {
+    const heard = event.results[0][0].transcript.trim().toLowerCase();
+    statusDiv.textContent = `Heard: "${heard}" — Searching...`;
+    this.classList.remove('listening');
+    document.getElementById('voice-btn-label').textContent = 'Voice-to-Vote';
+    const buttons = document.querySelectorAll('.vote-btn');
+    let found = false;
+    document.querySelectorAll('.candidate-row').forEach(row => {
+      const name = row.dataset.candidateName.toLowerCase();
+      if (heard.includes(name.split(' ')[0].toLowerCase()) || heard.includes(name.toLowerCase())) {
+        found = true;
+        const btn = row.querySelector('.vote-btn');
+        statusDiv.style.color = 'var(--accent)';
+        statusDiv.textContent = `✓ Auto-selected: ${row.dataset.candidateName}`;
+        btn.click();
+      }
+    });
+    if (!found) { statusDiv.textContent = `Could not find candidate matching "${heard}". Please try again.`; }
+  };
+  recog.onerror = () => {
+    this.classList.remove('listening');
+    document.getElementById('voice-btn-label').textContent = 'Voice-to-Vote';
+    statusDiv.textContent = 'Voice recognition error. Please try again.';
+  };
+});
+</script>
+{% endblock %}

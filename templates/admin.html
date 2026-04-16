@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — VotingBox{% endblock %}
+{% block content %}
+
+<style>
+.admin-layout { display: grid; grid-template-columns: 230px 1fr; gap: 0; min-height: calc(100vh - 130px); }
+.admin-sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sidebar-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.sidebar-btn:hover { color: var(--text); background: var(--surface-hover); }
+.sidebar-btn.active { color: var(--accent); background: rgba(100,151,72,0.1); }
+.admin-content { padding: 2rem; overflow-y: auto; }
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+}
+.metric-val { font-size: 2rem; font-weight: 900; color: var(--accent); }
+.metric-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+.alert-card { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: var(--radius); margin-bottom: 0.65rem; border-left: 3px solid; }
+.alert-high   { background: rgba(239,68,68,0.08);   border-color: #EF4444; }
+.alert-medium { background: rgba(251,191,36,0.08);  border-color: #FBB724; }
+.alert-low    { background: rgba(100,151,72,0.08);  border-color: var(--primary); }
+.emergency-btn {
+  width: 100%; padding: 1.1rem;
+  background: rgba(239,68,68,0.1); border: 2px solid #EF4444;
+  border-radius: var(--radius); color: #EF4444;
+  font-size: 0.95rem; font-weight: 800; cursor: pointer;
+  animation: emergencyPulse 2s ease-in-out infinite;
+  font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.emergency-btn:hover { background: rgba(239,68,68,0.18); }
+.admin-tab { display: none; }
+.admin-tab.active { display: block; }
+
+/* Candidate pill in election table */
+.cand-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.2rem 0.6rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  margin: 0.15rem;
+}
+.cand-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Candidate manager card */
+.cand-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 0.5rem; }
+.cand-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .admin-layout { grid-template-columns: 1fr; }
+  .admin-sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 0.75rem; }
+  .sidebar-btn { flex: 1; min-width: 100px; justify-content: center; }
+}
+@keyframes emergencyPulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+</style>
+
+{% if not is_admin %}
+<!-- ─── Not Authorised ──────────────────────────────────────────────────── -->
+<div class="container" style="padding:4rem 2rem;text-align:center;">
+  <div style="width:80px;height:80px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#EF4444;margin:0 auto 1.5rem;">
+    <i data-lucide="shield-x" style="width:36px;height:36px;"></i>
+  </div>
+  <h1 style="font-size:2rem;font-weight:900;margin-bottom:0.75rem;">Admin Access Only</h1>
+  <p style="color:var(--text-muted);margin-bottom:2rem;">You need administrator privileges to access this panel.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="/auth?redirect=/admin" class="btn btn-primary">Login as Admin →</a>
+    <a href="/" class="btn btn-outline">Go Home</a>
+  </div>
+  <div style="margin-top:1.5rem;padding:1rem;background:var(--surface);border-radius:var(--radius);display:inline-block;font-size:0.8rem;color:var(--text-muted);">
+    Demo admin: <strong style="color:var(--text);">admin@example.com</strong> / <strong style="color:var(--text);">admin123</strong>
+  </div>
+</div>
+
+{% else %}
+<!-- ─── Admin Bar ────────────────────────────────────────────────────────── -->
+<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:0.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:0.5rem;font-weight:700;font-size:0.9rem;">
+    <i data-lucide="shield-alert" style="width:16px;height:16px;color:var(--accent);"></i>
+    Admin Panel
+    <span class="badge badge-red" style="font-size:0.65rem;margin-left:0.25rem;">RESTRICTED</span>
+  </div>
+  <div style="font-size:0.8rem;color:var(--text-muted);">
+    Logged in as <strong style="color:var(--text);">{{ user.name }}</strong>
+  </div>
+</div>
+
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <div class="admin-sidebar">
+    <button class="sidebar-btn active" onclick="switchTab('war-room',this)">
+      <i data-lucide="activity" style="width:15px;height:15px;"></i> War Room
+    </button>
+    <button class="sidebar-btn" onclick="switchTab('elections',this)">
+      <i data-lucide="clipboard-list" style="width:15px;height:15px;"></i> Elections
+    </button>
+    <button class="sidebar-btn" onclick="switchTab('voter-mgmt',this)">
+      <i data-lucide="users" style="width:15px;height:15px;"></i> Voters
+    </button>
+    <button class="sidebar-btn" onclick="switchTab('audit-logs',this)">
+      <i data-lucide="scroll-text" style="width:15px;height:15px;"></i> Audit Logs
+    </button>
+  </div>
+
+  <div class="admin-content">
+
+    <!-- ── War Room ───────────────────────────────────────── -->
+    <div id="tab-war-room" class="admin-tab active">
+      <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="activity" style="width:18px;height:18px;color:var(--accent);"></i> War Room
+      </h2>
+      <div class="grid-4" style="margin-bottom:1.5rem;">
+        <div class="metric-card">
+          <div style="font-size:1.5rem;margin-bottom:0.4rem;">🗳️</div>
+          <div class="metric-val">{{ elections|length }}</div>
+          <div class="metric-label">Total Elections</div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size:1.5rem;margin-bottom:0.4rem;">👥</div>
+          <div class="metric-val" id="voters-val">{{ voters|length }}</div>
+          <div class="metric-label">Registered Voters</div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size:1.5rem;margin-bottom:0.4rem;">🖥️</div>
+          <div class="metric-val" id="cpu-val">--</div>
+          <div class="metric-label">CPU Load</div>
+          <div class="progress-bar-bg" style="margin-top:0.5rem;height:6px;"><div class="progress-bar-fill" id="cpu-bar" style="width:0%;"></div></div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size:1.5rem;margin-bottom:0.4rem;">💾</div>
+          <div class="metric-val" id="mem-val">--</div>
+          <div class="metric-label">Memory</div>
+          <div class="progress-bar-bg" style="margin-top:0.5rem;height:6px;"><div class="progress-bar-fill" id="mem-bar" style="width:0%;"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:1.5rem;">
+        <div>
+          <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="alert-triangle" style="width:14px;height:14px;color:#EF4444;"></i> Fraud Alerts
+          </h3>
+          <div class="alert-card alert-high"><span>🚨</span><div><div style="font-size:0.8rem;font-weight:700;color:#F87171;">HIGH — Multiple votes attempted from IP 192.168.1.45</div><div style="font-size:0.72rem;color:var(--text-muted);">2 minutes ago</div></div></div>
+          <div class="alert-card alert-medium"><span>⚠️</span><div><div style="font-size:0.8rem;font-weight:700;color:#FDE047;">MEDIUM — VPN detected for user voter_8821</div><div style="font-size:0.72rem;color:var(--text-muted);">15 minutes ago</div></div></div>
+          <div class="alert-card alert-low"><span>🔍</span><div><div style="font-size:0.8rem;font-weight:700;color:var(--accent);">LOW — 200 votes recorded in 60-second window</div><div style="font-size:0.72rem;color:var(--text-muted);">1 hour ago</div></div></div>
+        </div>
+        <div>
+          <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;color:#EF4444;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="octagon-alert" style="width:14px;height:14px;"></i> Emergency Controls
+          </h3>
+          <button class="emergency-btn" onclick="openModal('emergency-modal')">🚨 Emergency Stop All Voting</button>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;text-align:center;">Dual-admin authorization required</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Election Management ────────────────────────────────── -->
+    <div id="tab-elections" class="admin-tab">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+        <h2 style="font-size:1.25rem;font-weight:800;">Election Management</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('new-election-modal')">
+          <i data-lucide="plus" style="width:14px;height:14px;"></i> Create New Election
+        </button>
+      </div>
+
+      <div id="elections-table-wrap" class="card" style="padding:0;">
+        <table>
+          <thead><tr>
+            <th>Election</th>
+            <th>Category</th>
+            <th>Candidates</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="elections-tbody">
+            {% for e in elections %}
+            <tr id="erow-{{ e.id }}">
+              <td><strong style="font-size:0.875rem;">{{ e.title }}</strong></td>
+              <td><span class="badge badge-muted" style="font-size:0.7rem;">{{ e.category }}</span></td>
+              <td>
+                <div style="display:flex;flex-wrap:wrap;gap:0.2rem;max-width:200px;">
+                  {% for c in candidates.get(e.id, []) %}
+                  <span class="cand-pill">
+                    <span class="cand-dot" style="background:{{ c.color }};"></span>
+                    {{ c.name.split()[0] }}
+                  </span>
+                  {% else %}
+                  <span style="font-size:0.75rem;color:var(--text-muted);">No candidates</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                {% if e.status == 'OPEN' %}<span class="badge badge-green" style="font-size:0.65rem;"><span class="pulse-dot"></span> OPEN</span>
+                {% elif e.status == 'CLOSED' %}<span class="badge badge-red" style="font-size:0.65rem;">CLOSED</span>
+                {% else %}<span class="badge badge-yellow" style="font-size:0.65rem;">{{ e.status }}</span>{% endif %}
+              </td>
+              <td style="font-size:0.8rem;color:var(--text-muted);">{{ e.deadline }}</td>
+              <td>
+                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                  <button class="btn btn-sm btn-outline" style="font-size:0.72rem;"
+                    onclick="openCandidateManager('{{ e.id }}', '{{ e.title|replace("'","\\'")|replace('"','\\"') }}')">
+                    <i data-lucide="user-plus" style="width:12px;height:12px;"></i> Candidates
+                  </button>
+                  <button class="btn btn-sm btn-glass" style="font-size:0.72rem;"
+                    onclick="toggleStatus('{{ e.id }}', '{{ e.status }}')">
+                    {{ 'Pause' if e.status == 'OPEN' else 'Resume' if e.status == 'CLOSED' else 'Open' }}
+                  </button>
+                  <button class="btn btn-sm" style="font-size:0.72rem;border:1px solid rgba(239,68,68,0.3);color:#EF4444;background:transparent;"
+                    onclick="deleteElection('{{ e.id }}', this)">
+                    <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Voter Management ───────────────────────────────────── -->
+    <div id="tab-voter-mgmt" class="admin-tab">
+      <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:1.5rem;">Voter Management</h2>
+      <div class="input-wrap" style="max-width:360px;margin-bottom:1.5rem;">
+        <i data-lucide="search" class="input-icon" style="width:16px;height:16px;"></i>
+        <input type="text" placeholder="Search voters..." id="voter-search" oninput="filterVoters()" style="padding-left:2.5rem;">
+      </div>
+      <div class="card" style="padding:0;">
+        <table id="voters-table">
+          <thead><tr><th>Voter ID</th><th>Name</th><th>Email</th><th>Registered</th><th>Votes Cast</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for v in voters %}
+            <tr class="voter-row" data-name="{{ v.name.lower() }}" data-email="{{ v.email.lower() }}">
+              <td><div class="code-block" style="display:inline-block;font-size:0.7rem;">{{ v.id }}</div></td>
+              <td><strong>{{ v.name }}</strong></td>
+              <td style="font-size:0.85rem;color:var(--text-muted);">{{ v.email }}</td>
+              <td style="font-size:0.85rem;color:var(--text-muted);">{{ v.date }}</td>
+              <td style="font-weight:700;color:var(--accent);">{{ v.votes }}</td>
+              <td><span class="badge badge-green" style="font-size:0.65rem;">{{ v.status }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No registered voters yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Audit Logs ─────────────────────────────────────────── -->
+    <div id="tab-audit-logs" class="admin-tab">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+        <h2 style="font-size:1.25rem;font-weight:800;">Audit Logs</h2>
+        <button class="btn btn-sm btn-outline" onclick="showToast('Downloading logs...','success')">
+          <i data-lucide="download" style="width:14px;height:14px;"></i> Download
+        </button>
+      </div>
+      <div class="card" style="padding:0;max-height:550px;overflow-y:auto;">
+        <table>
+          <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>IP Address</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td style="font-family:monospace;font-size:0.72rem;color:var(--text-muted);">{{ log.time }}</td>
+              <td><span class="code-block" style="font-size:0.7rem;">{{ log.user }}</span></td>
+              <td style="font-size:0.85rem;">{{ log.action }}</td>
+              <td style="font-family:monospace;font-size:0.72rem;color:var(--text-muted);">{{ log.ip }}</td>
+              <td>
+                {% if log.status == 'Success' %}<span class="badge badge-green" style="font-size:0.65rem;">{{ log.status }}</span>
+                {% elif log.status == 'Blocked' %}<span class="badge badge-red" style="font-size:0.65rem;">{{ log.status }}</span>
+                {% else %}<span class="badge badge-yellow" style="font-size:0.65rem;">{{ log.status }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Emergency Stop Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="emergency-modal" role="dialog" aria-modal="true">
+  <div class="modal" style="border-color:rgba(239,68,68,0.3);max-width:480px;">
+    <div class="modal-header">
+      <h2 class="modal-title" style="color:#EF4444;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="octagon-alert" style="width:20px;height:20px;"></i> ⚠️ EMERGENCY HALT
+      </h2>
+      <button class="modal-close" onclick="closeModal('emergency-modal')">✕</button>
+    </div>
+    <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;font-size:0.875rem;color:var(--text-muted);line-height:1.7;">
+      This will <strong style="color:#EF4444;">immediately pause all active elections</strong> and lock the system. This action will be logged permanently.
+    </div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('emergency-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-stop-btn" disabled onclick="emergencyStop()">Confirm Emergency Stop</button>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem;text-align:center;" id="stop-timer">Confirm button enables in 3 seconds...</div>
+  </div>
+</div>
+
+<!-- ── Create Election Modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="new-election-modal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <h2 class="modal-title"><i data-lucide="plus-circle" style="width:18px;height:18px;color:var(--accent);vertical-align:-3px;margin-right:6px;"></i>Create New Election</h2>
+      <button class="modal-close" onclick="closeModal('new-election-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Election Title *</label>
+      <input type="text" id="ne-title" placeholder="e.g. National General Election 2027">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select id="ne-category" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0.75rem 1rem;font-family:inherit;font-size:0.9rem;">
+        <option>National</option><option>State</option><option>Municipal</option>
+        <option>Student Council</option><option>Corporate</option><option>Education</option><option>General</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deadline *</label>
+      <input type="date" id="ne-deadline">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Initial Status</label>
+      <select id="ne-status" style="width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:0.75rem 1rem;font-family:inherit;font-size:0.9rem;">
+        <option value="OPEN">OPEN — Voting live now</option>
+        <option value="UPCOMING">UPCOMING — Not started yet</option>
+        <option value="CLOSED">CLOSED</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="createElection()">
+      <i data-lucide="check" style="width:14px;height:14px;"></i> Create Election
+    </button>
+  </div>
+</div>
+
+<!-- ── Candidate Manager Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="cand-manager-modal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h2 class="modal-title"><i data-lucide="users" style="width:18px;height:18px;color:var(--accent);vertical-align:-3px;margin-right:6px;"></i>Manage Candidates</h2>
+      <button class="modal-close" onclick="closeModal('cand-manager-modal')">✕</button>
+    </div>
+    <p id="cand-election-title" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;"></p>
+
+    <!-- Existing candidates -->
+    <div id="existing-candidates" style="margin-bottom:1.5rem;"></div>
+
+    <!-- Add new candidate form -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+      <h4 style="font-size:0.875rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="user-plus" style="width:14px;height:14px;color:var(--accent);"></i> Add Candidate
+      </h4>
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" id="cand-name" placeholder="e.g. Rahul Sharma">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Party / Affiliation</label>
+        <input type="text" id="cand-party" placeholder="e.g. Independent / Party name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brief Description</label>
+        <input type="text" id="cand-desc" placeholder="One-line bio or manifesto snippet">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addCandidate()">
+        <i data-lucide="plus" style="width:13px;height:13px;"></i> Add Candidate
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<script>
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Auto metrics ────────────────────────────────────────────────────
+{% if is_admin %}
+setInterval(() => {
+  const cpu = Math.floor(Math.random() * 30 + 30);
+  const mem = Math.floor(Math.random() * 20 + 55);
+  const cpuEl = document.getElementById('cpu-val');
+  const memEl = document.getElementById('mem-val');
+  const cpuBar= document.getElementById('cpu-bar');
+  const memBar= document.getElementById('mem-bar');
+  if (cpuEl) cpuEl.textContent = cpu + '%';
+  if (memEl) memEl.textContent = mem + '%';
+  if (cpuBar) cpuBar.style.width = cpu + '%';
+  if (memBar) memBar.style.width = mem + '%';
+}, 2000);
+
+// ── Emergency timer ──────────────────────────────────────────────────
+const stopModal = document.getElementById('emergency-modal');
+if (stopModal) {
+  stopModal.addEventListener('click', () => {
+    if (stopModal.dataset.timerStarted) return;
+    stopModal.dataset.timerStarted = '1';
+    let count = 3;
+    const timer = document.getElementById('stop-timer');
+    const btn   = document.getElementById('confirm-stop-btn');
+    const iv = setInterval(() => {
+      count--;
+      if (timer) timer.textContent = count > 0 ? `Confirm button enables in ${count} seconds...` : '';
+      if (count <= 0) { clearInterval(iv); if (btn) btn.disabled = false; }
+    }, 1000);
+  }, { once: true });
+}
+
+function emergencyStop() {
+  closeModal('emergency-modal');
+  showToast('🚨 Emergency halt initiated! All elections paused.', 'error', 5000);
+}
+
+// ── Voter search ─────────────────────────────────────────────────────
+function filterVoters() {
+  const q = document.getElementById('voter-search').value.toLowerCase();
+  document.querySelectorAll('.voter-row').forEach(r => {
+    const match = r.dataset.name.includes(q) || r.dataset.email.includes(q);
+    r.style.display = match ? '' : 'none';
+  });
+}
+
+// ── Create Election ──────────────────────────────────────────────────
+async function createElection() {
+  const title    = document.getElementById('ne-title').value.trim();
+  const category = document.getElementById('ne-category').value;
+  const deadline = document.getElementById('ne-deadline').value;
+  const status   = document.getElementById('ne-status').value;
+  if (!title) { showToast('Please enter a title', 'error'); return; }
+  if (!deadline) { showToast('Please select a deadline', 'error'); return; }
+
+  const res  = await fetch('/admin/create-election', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ title, category, deadline, status }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`✅ Election "${title}" created!`, 'success', 3000);
+    closeModal('new-election-modal');
+    // Add row to table
+    const tbody = document.getElementById('elections-tbody');
+    const tr = document.createElement('tr');
+    tr.id = 'erow-' + data.election_id;
+    tr.innerHTML = `
+      <td><strong style="font-size:0.875rem;">${title}</strong></td>
+      <td><span class="badge badge-muted" style="font-size:0.7rem;">${category}</span></td>
+      <td><span style="font-size:0.75rem;color:var(--text-muted);">No candidates</span></td>
+      <td><span class="badge badge-${status==='OPEN'?'green':status==='CLOSED'?'red':'yellow'}" style="font-size:0.65rem;">${status}</span></td>
+      <td style="font-size:0.8rem;color:var(--text-muted);">${deadline}</td>
+      <td>
+        <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline" style="font-size:0.72rem;" onclick="openCandidateManager('${data.election_id}','${title.replace(/'/g,"\\'")}')">
+            <i data-lucide="user-plus" style="width:12px;height:12px;"></i> Candidates
+          </button>
+          <button class="btn btn-sm btn-glass" style="font-size:0.72rem;" onclick="toggleStatus('${data.election_id}','${status}')">
+            ${status==='OPEN'?'Pause':'Open'}
+          </button>
+          <button class="btn btn-sm" style="font-size:0.72rem;border:1px solid rgba(239,68,68,0.3);color:#EF4444;background:transparent;" onclick="deleteElection('${data.election_id}',this)">
+            <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+          </button>
+        </div>
+      </td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+    lucide.createIcons();
+    document.getElementById('ne-title').value = '';
+    document.getElementById('ne-deadline').value = '';
+    // Open the candidate manager immediately
+    setTimeout(() => openCandidateManager(data.election_id, title), 400);
+  } else {
+    showToast(data.error || 'Failed to create election', 'error');
+  }
+}
+
+// ── Candidate Manager ───────────────────────────────────────────────
+let currentElectionId = null;
+
+async function openCandidateManager(eid, etitle) {
+  currentElectionId = eid;
+  document.getElementById('cand-election-title').textContent = `Election: ${etitle}`;
+  document.getElementById('cand-name').value  = '';
+  document.getElementById('cand-party').value = '';
+  document.getElementById('cand-desc').value  = '';
+  await refreshCandidateList(eid);
+  openModal('cand-manager-modal');
+}
+
+async function refreshCandidateList(eid) {
+  const res  = await fetch('/admin/candidates/' + eid);
+  const data = await res.json();
+  const wrap = document.getElementById('existing-candidates');
+  if (!data.candidates || data.candidates.length === 0) {
+    wrap.innerHTML = '<p style="font-size:0.85rem;color:var(--text-muted);">No candidates added yet.</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <h4 style="font-size:0.85rem;font-weight:700;margin-bottom:0.75rem;color:var(--text-muted);">
+      CURRENT CANDIDATES (${data.candidates.length})
+    </h4>` +
+    data.candidates.map(c => `
+      <div class="cand-row">
+        <img class="cand-avatar" src="https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=${c.avatar_bg}&color=fff&size=80" alt="${c.name}">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.9rem;">${c.name}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">${c.party}</div>
+        </div>
+        <span style="background:${c.color}22;color:${c.color};border:1px solid ${c.color}44;padding:0.2rem 0.6rem;border-radius:999px;font-size:0.7rem;font-weight:700;">
+          ${c.votes} votes
+        </span>
+      </div>`).join('');
+}
+
+async function addCandidate() {
+  const name  = document.getElementById('cand-name').value.trim();
+  const party = document.getElementById('cand-party').value.trim();
+  const desc  = document.getElementById('cand-desc').value.trim();
+  if (!name) { showToast('Please enter a candidate name', 'error'); return; }
+  if (!currentElectionId) { showToast('No election selected', 'error'); return; }
+
+  const res  = await fetch('/admin/add-candidate', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ election_id: currentElectionId, name, party, desc }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`✅ ${name} added as candidate!`, 'success');
+    document.getElementById('cand-name').value  = '';
+    document.getElementById('cand-party').value = '';
+    document.getElementById('cand-desc').value  = '';
+    await refreshCandidateList(currentElectionId);
+    // Update pill in elections table
+    updateElectionRow(currentElectionId);
+  } else {
+    showToast(data.error || 'Failed to add candidate', 'error');
+  }
+}
+
+async function updateElectionRow(eid) {
+  const res  = await fetch('/admin/candidates/' + eid);
+  const data = await res.json();
+  const row  = document.getElementById('erow-' + eid);
+  if (!row || !data.candidates) return;
+  const cCell = row.querySelectorAll('td')[2];
+  if (!cCell) return;
+  if (data.candidates.length === 0) {
+    cCell.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">No candidates</span>';
+  } else {
+    cCell.innerHTML = data.candidates.map(c =>
+      `<span class="cand-pill"><span class="cand-dot" style="background:${c.color};"></span>${c.name.split(' ')[0]}</span>`
+    ).join('');
+  }
+}
+
+// ── Toggle election status ───────────────────────────────────────────
+async function toggleStatus(eid, currentStatus) {
+  const newStatus = currentStatus === 'OPEN' ? 'CLOSED' :
+                    currentStatus === 'CLOSED' ? 'OPEN' : 'OPEN';
+  const res  = await fetch('/admin/toggle-election', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ election_id: eid, status: newStatus }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`Election status → ${newStatus}`, 'success');
+    setTimeout(() => location.reload(), 800);
+  }
+}
+
+// ── Delete election ──────────────────────────────────────────────────
+async function deleteElection(eid, btn) {
+  if (!confirm('Delete this election? This cannot be undone.')) return;
+  const res  = await fetch('/admin/delete-election', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ election_id: eid }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Election deleted', 'success');
+    const row = document.getElementById('erow-' + eid);
+    if (row) row.remove();
+  } else {
+    showToast(data.error || 'Failed to delete', 'error');
+  }
+}
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% block title %}VotingBox — Your Voice. Your Vote. Your Future.{% endblock %}
+{% block content %}
+
+<style>
+/* ─── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: url('https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=1400&auto=format&fit=crop&q=60') center/cover;
+  opacity: 0.12;
+}
+.hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.7) 50%, rgba(13,17,23,0.95) 100%);
+}
+.hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+}
+.orb-1 { width: 500px; height: 500px; background: var(--primary); top: -100px; right: -100px; animation: float 8s ease-in-out infinite; }
+.orb-2 { width: 350px; height: 350px; background: #3B82F6; bottom: 50px; left: -80px; animation: floatAlt 10s ease-in-out infinite; }
+.orb-3 { width: 250px; height: 250px; background: var(--accent); top: 50%; left: 50%; animation: float 12s ease-in-out infinite reverse; }
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(100,151,72,0.12);
+  border: 1px solid rgba(100,151,72,0.25);
+  color: var(--accent);
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+}
+.hero-title {
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+.hero-title .accent { color: var(--accent); }
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--text-muted);
+  max-width: 650px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+.hero-ctas { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.btn-watch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 2rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: transparent;
+  border: 2px solid #EF4444;
+  color: #F87171;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.btn-watch:hover { background: rgba(239,68,68,0.1); }
+.live-dot { width: 8px; height: 8px; background: #EF4444; border-radius: 50%; animation: pulseDot 1s infinite; }
+
+/* ─── Countdown ─────────────────────────────────────────────────── */
+.countdown-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  box-shadow: var(--shadow-lg);
+  margin: 0 2rem;
+  max-width: 900px;
+  margin: -3rem auto 0;
+  position: relative;
+  z-index: 5;
+  flex-wrap: wrap;
+}
+.countdown-info { display: flex; align-items: center; gap: 0.85rem; }
+.countdown-text h3 { font-size: 0.95rem; font-weight: 700; }
+.countdown-text p { font-size: 0.8rem; color: var(--text-muted); }
+.countdown-timer { display: flex; gap: 0.75rem; align-items: center; }
+.count-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.1rem;
+  min-width: 64px;
+}
+.count-number { font-size: 1.6rem; font-weight: 900; color: var(--accent); line-height: 1; }
+.count-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+.countdown-sep { font-size: 1.5rem; font-weight: 900; color: var(--text-muted); }
+
+/* ─── Feature Cards ──────────────────────────────────────────────── */
+.feature-icon-box {
+  width: 52px; height: 52px;
+  background: rgba(100,151,72,0.12);
+  border: 1px solid rgba(100,151,72,0.2);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+.feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.5rem; }
+.feature-card h3 i { color: var(--primary); }
+.feature-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; }
+
+/* ─── Stats/Trust ────────────────────────────────────────────────── */
+.trust-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 3rem; }
+.trust-img-wrap { position: relative; }
+.trust-img-wrap img { width: 100%; border-radius: var(--radius-lg); transform: rotate(-2deg); border: 2px solid var(--border); }
+.trust-floating-badge {
+  position: absolute;
+  bottom: -20px;
+  left: -20px;
+  background: var(--surface);
+  border: 1px solid rgba(100,151,72,0.3);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-lg);
+}
+.trust-floating-badge .icon-circle {
+  width: 38px; height: 38px;
+  background: rgba(100,151,72,0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.trust-badge-text span { display: block; font-size: 0.85rem; font-weight: 700; }
+.trust-badge-text small { font-size: 0.7rem; color: var(--text-muted); }
+.trust-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-top: 2rem; }
+.trust-stat { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+.trust-stat .val { font-size: 1.75rem; font-weight: 900; color: var(--accent); }
+.trust-stat .lbl { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ─── Live Broadcast Modal ─────────────────────────────────────── */
+.live-modal-header { display: flex; align-items: center; gap: 0.75rem; flex: 1; }
+.live-video-area {
+  background: #000;
+  border-radius: var(--radius);
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.live-video-area .play-icon {
+  width: 64px; height: 64px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.live-video-area p { color: rgba(255,255,255,0.4); font-size: 0.875rem; }
+.breaking-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #1a3a05, #2d5a0a);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.825rem;
+}
+.breaking-badge {
+  background: #EF4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+</style>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-gradient"></div>
+  <div class="hero-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="hero-content fade-in">
+    <div class="hero-eyebrow">
+      <span class="pulse-dot" style="background:var(--accent);"></span>
+      Live Election Season 2026
+    </div>
+    <h1 class="hero-title">
+      "Your Voice.<br>Your Vote.<br><span class="accent">Your Future."</span>
+    </h1>
+    <p class="hero-subtitle">Experience the next generation of democracy with our secure, fast, and transparent online voting platform.</p>
+    <div class="hero-ctas">
+      <a href="/elections" class="btn btn-primary btn-pill btn-lg" style="font-size:1rem;">
+        <i data-lucide="vote" style="width:18px;height:18px;"></i>
+        Vote Now
+      </a>
+      <button class="btn-watch" onclick="openModal('live-modal')" id="watch-live-btn">
+        <span class="live-dot"></span>
+        Watch Live
+      </button>
+      <a href="/how-it-works" class="btn btn-glass btn-pill btn-lg" style="font-size:1rem;">
+        Learn How It Works
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Countdown Widget -->
+<div class="container">
+  <div class="countdown-wrap fade-in fade-in-delay-1">
+    <div class="countdown-info">
+      <div style="width:44px;height:44px;background:rgba(100,151,72,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);">
+        <i data-lucide="clock" style="width:22px;height:22px;"></i>
+      </div>
+      <div class="countdown-text">
+        <h3>National Student Council Election</h3>
+        <p>Polls close in:</p>
+      </div>
+    </div>
+    <div class="countdown-timer">
+      <div class="count-box"><div class="count-number" id="cd-days">03</div><div class="count-label">Days</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="count-box"><div class="count-number" id="cd-hours">14</div><div class="count-label">Hours</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="count-box"><div class="count-number" id="cd-mins">00</div><div class="count-label">Mins</div></div>
+      <div class="countdown-sep">:</div>
+      <div class="count-box"><div class="count-number" id="cd-secs">00</div><div class="count-label">Secs</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Why Choose VotingBox -->
+<section class="section">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag"><i data-lucide="star" style="width:12px;height:12px;"></i> Why VotingBox</div>
+      <h2 class="section-title">Built for the <span class="highlight">future of democracy</span></h2>
+      <p class="section-subtitle">Every feature designed to ensure your vote is secure, counted, and transparent.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card card-hover-glow feature-card fade-in">
+        <div class="feature-icon-box">
+          <i data-lucide="shield-check" style="width:24px;height:24px;"></i>
+        </div>
+        <h3><i data-lucide="check-circle" style="width:18px;height:18px;color:var(--primary)"></i> Secure &amp; Encrypted</h3>
+        <p>End-to-end 256-bit encryption ensures your vote remains anonymous and tamper-proof from the moment you cast it to final tabulation.</p>
+      </div>
+      <div class="card card-hover-glow feature-card fade-in fade-in-delay-1">
+        <div class="feature-icon-box">
+          <i data-lucide="bar-chart-3" style="width:24px;height:24px;"></i>
+        </div>
+        <h3><i data-lucide="check-circle" style="width:18px;height:18px;color:var(--primary)"></i> Real-Time Results</h3>
+        <p>Watch the results unfold live with our dynamic, interactive dashboards and analytics. No waiting — see every vote counted instantly.</p>
+      </div>
+      <div class="card card-hover-glow feature-card fade-in fade-in-delay-2">
+        <div class="feature-icon-box">
+          <i data-lucide="zap" style="width:24px;height:24px;"></i>
+        </div>
+        <h3><i data-lucide="check-circle" style="width:18px;height:18px;color:var(--primary)"></i> Easy to Use</h3>
+        <p>A seamless, accessible interface designed for voters of all ages and technical abilities. Vote in seconds from any device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trust / Stats Section -->
+<section class="section-sm">
+  <div class="container">
+    <div class="trust-section">
+      <div class="grid-2" style="align-items:center;gap:3rem;">
+        <div class="fade-in">
+          <h2 class="section-title" style="text-align:left;margin-bottom:1rem;">Trusted by organizations <span class="highlight">worldwide</span></h2>
+          <p style="color:var(--text-muted);line-height:1.7;margin-bottom:2rem;">From university student councils to national elections, VotingBox powers democratic participation at every scale with military-grade security and real-time transparency.</p>
+          <div class="trust-stats">
+            <div class="trust-stat"><div class="val">10M+</div><div class="lbl">Votes Cast</div></div>
+            <div class="trust-stat"><div class="val">99.9%</div><div class="lbl">Uptime</div></div>
+            <div class="trust-stat"><div class="val">500+</div><div class="lbl">Organizations</div></div>
+            <div class="trust-stat"><div class="val">0</div><div class="lbl">Security Breaches</div></div>
+          </div>
+          <div style="margin-top:2rem;">
+            <a href="/elections" class="btn btn-primary">Explore Elections →</a>
+          </div>
+        </div>
+        <div class="trust-img-wrap fade-in fade-in-delay-1">
+          <img src="https://images.unsplash.com/photo-1548345680-f5475ea5df84?w=600&auto=format&fit=crop&q=80" alt="Voting booths">
+          <div class="trust-floating-badge">
+            <div class="icon-circle"><i data-lucide="user-check" style="width:18px;height:18px;"></i></div>
+            <div class="trust-badge-text">
+              <span>Verified Voters</span>
+              <small>100% Identity Checked</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Open Elections Preview -->
+{% if open_elections %}
+<section class="section">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag"><span class="pulse-dot" style="background:var(--accent);"></span> Live Now</div>
+      <h2 class="section-title">Active <span class="highlight">Elections</span></h2>
+      <p class="section-subtitle">Cast your vote in these open elections before they close.</p>
+    </div>
+    <div class="grid-3">
+      {% for e in open_elections %}
+      <div class="card card-hover-glow fade-in" style="border-top: 3px solid var(--primary);position:relative;">
+        <div style="position:absolute;top:1rem;right:1rem;"><span class="badge badge-green"><span class="pulse-dot"></span> OPEN NOW</span></div>
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+          <div style="width:42px;height:42px;background:rgba(100,151,72,0.12);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:var(--accent);">
+            <i data-lucide="{{ e.icon }}" style="width:20px;height:20px;"></i>
+          </div>
+          <span class="badge badge-muted">{{ e.category }}</span>
+        </div>
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:0.6rem;">{{ e.title }}</h3>
+        <p style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;margin-bottom:1.25rem;">
+          <i data-lucide="calendar" style="width:14px;height:14px;"></i> Closes: {{ e.deadline }}
+        </p>
+        <a href="/auth?redirect=/vote/{{ e.id }}" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Vote Now →</a>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a href="/elections" class="btn btn-outline">View All Elections</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Live Broadcast Modal -->
+<div class="modal-overlay" id="live-modal" role="dialog" aria-modal="true" aria-labelledby="live-modal-title">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <div class="live-modal-header">
+        <span class="live-dot" style="width:10px;height:10px;background:#EF4444;border-radius:50%;animation:pulseDot 1s infinite;"></span>
+        <h2 class="modal-title" id="live-modal-title" style="font-size:1rem;">LIVE: General Election 2024 Coverage</h2>
+      </div>
+      <button class="modal-close" onclick="closeModal('live-modal')" aria-label="Close modal">✕</button>
+    </div>
+    <div class="live-video-area">
+      <div class="play-icon">
+        <i data-lucide="play" style="width:28px;height:28px;color:#fff;"></i>
+      </div>
+      <p>Live broadcast stream will appear here.</p>
+      <div class="breaking-bar">
+        <span class="breaking-badge">BREAKING</span>
+        <span>Voter Turnout Surpasses 65% Nationwide — Historic participation in 2026 General Election</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Countdown ───────────────────────────────────────────────────
+(function() {
+  const now = new Date();
+  const target = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000) + (14 * 60 * 60 * 1000));
+  function update() {
+    const diff = target - new Date();
+    if (diff <= 0) return;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-days').textContent = String(days).padStart(2,'0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
+    document.getElementById('cd-mins').textContent = String(mins).padStart(2,'0');
+    document.getElementById('cd-secs').textContent = String(secs).padStart(2,'0');
+  }
+  update();
+  setInterval(update, 1000);
+})();
+</script>
+
+{% endblock %}

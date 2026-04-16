@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}How It Works — VotingBox{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <div class="section-tag fade-in"><i data-lucide="help-circle" style="width:12px;height:12px;"></i> Simple & Secure</div>
+    <h1 class="fade-in">How It <span style="color:var(--accent);">Works</span></h1>
+    <p class="fade-in fade-in-delay-1">Four simple steps to cast your vote securely and transparently.</p>
+  </div>
+</div>
+
+<div class="container section">
+  <!-- 4-Step Timeline -->
+  <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:1.5rem;position:relative;margin-bottom:5rem;" class="fade-in">
+    <!-- Connecting Line -->
+    <div style="position:absolute;top:36px;left:12%;right:12%;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent));z-index:0;"></div>
+    {% set steps = [
+      ('log-in','1','Register / Login','Create an account using your national ID or voter ID. Verification takes under 2 minutes.'),
+      ('scan-face','2','Verify Identity','Complete a quick identity verification using our biometric selfie system to ensure eligibility.'),
+      ('vote','3','Cast Your Vote','Browse active elections, review candidate platforms, and securely cast your vote with one click.'),
+      ('bar-chart-3','4','View Results','Watch results update in real-time as soon as polls close. Full transparency guaranteed.'),
+    ] %}
+    {% for icon, num, title, desc in steps %}
+    <div style="text-align:center;position:relative;z-index:1;">
+      <div style="width:72px;height:72px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;box-shadow:0 0 24px rgba(100,151,72,0.3);">
+        <i data-lucide="{{ icon }}" style="width:28px;height:28px;color:#fff;"></i>
+      </div>
+      <div style="width:26px;height:26px;background:var(--bg);border:2px solid var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem;font-size:0.7rem;font-weight:900;color:var(--accent);">{{ num }}</div>
+      <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:0.5rem;">{{ title }}</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.6;">{{ desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Security Features -->
+  <div style="margin-bottom:5rem;">
+    <div class="section-header fade-in">
+      <div class="section-tag"><i data-lucide="shield" style="width:12px;height:12px;"></i> Security</div>
+      <h2 class="section-title">Military-grade <span class="highlight">security</span></h2>
+      <p class="section-subtitle">Every layer of VotingBox is built with security-first architecture.</p>
+    </div>
+    <div class="grid-4 fade-in">
+      {% set security = [
+        ('lock','End-to-End Encryption','256-bit AES encryption protects every vote from submission to storage.'),
+        ('blocks','Blockchain Immutability','Once recorded, votes are cryptographically sealed and cannot be altered.'),
+        ('eye-off','Zero-Knowledge Proofs','Verify vote validity without revealing any voter information.'),
+        ('brain','AI Fraud Detection','Real-time anomaly detection identifies and blocks suspicious voting patterns.'),
+      ] %}
+      {% for icon, title, desc in security %}
+      <div class="card card-hover-glow fade-in" style="text-align:center;padding:1.75rem 1.25rem;">
+        <div style="width:52px;height:52px;background:rgba(100,151,72,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);margin:0 auto 1rem;">
+          <i data-lucide="{{ icon }}" style="width:24px;height:24px;"></i>
+        </div>
+        <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:0.5rem;">{{ title }}</h3>
+        <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.6;">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="fade-in">
+    <div class="section-header">
+      <div class="section-tag"><i data-lucide="message-circle-question" style="width:12px;height:12px;"></i> FAQ</div>
+      <h2 class="section-title">Frequently Asked <span class="highlight">Questions</span></h2>
+    </div>
+    <div style="max-width:700px;margin:0 auto;">
+      {% set faqs = [
+        ('Is my vote truly anonymous?','Yes. VotingBox uses zero-knowledge cryptographic proofs to verify that your vote is valid without revealing who you voted for. Even our administrators cannot see individual votes.'),
+        ("What happens if I lose internet connection while voting?",'If you lose connectivity during the voting process, your progress is saved locally. Simply reconnect and resume. Votes are only counted once fully submitted and confirmed by the blockchain.'),
+        ('Can I change my vote after submitting?','No. Once a vote is submitted and recorded on the blockchain, it is immutable and cannot be changed. This is by design to ensure election integrity.'),
+        ('How are results verified?','All results are cross-verified by our distributed blockchain network of 256+ nodes. Any discrepancy triggers an automatic audit alert. Results are publicly verifiable by anyone.'),
+        ('What devices are supported?','VotingBox works on any modern browser including Chrome, Firefox, Safari, and Edge. Both desktop and mobile devices are supported. No app download required.'),
+        ('How is my identity verified?','We use AI-powered facial recognition combined with government ID verification. Your biometric data is never stored — only a temporary cryptographic hash is used during the session.'),
+      ] %}
+      {% for q, a in faqs %}
+      <div class="accordion-item">
+        <button class="accordion-header">
+          {{ q }}
+          <i data-lucide="chevron-down" class="accordion-icon" style="width:16px;height:16px;"></i>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-body-inner">{{ a }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
